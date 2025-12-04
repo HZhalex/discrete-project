@@ -48,29 +48,3 @@ Project được chia làm hai phần:
 
 ##  Cấu trúc thư mục
 
-```plaintext
-graph-visualizer/
-│
-├── backend/
-│   ├── app.py                 # Main backend API
-│   ├── algorithms/
-│   │   ├── bfs.py
-│   │   ├── dfs.py
-│   │   ├── dijkstra.py
-│   │   └── bipartite.py
-│   ├── utils/
-│   │   └── converter.py       # Chuyển đổi biểu diễn
-│   ├── models/
-│   │   └── graph_model.py
-│   └── data/
-│       └── graphs.json
-│
-├── frontend/
-│   ├── index.html
-│   ├── style.css
-│   ├── app.js
-│   └── libs/                  # cytoscape.js hoặc vis.js
-│
-├── .gitignore
-├── requirements.txt
-└── README.md
