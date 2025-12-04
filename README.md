@@ -4,7 +4,7 @@ Một ứng dụng web cho phép **vẽ đồ thị trực quan**, **lưu dữ l
 
 ---
 
-## 🚀 Tính năng chính
+##  Tính năng chính
 
 ### 1. Vẽ đồ thị trực quan
 - Thêm / xoá đỉnh
@@ -29,7 +29,7 @@ Một ứng dụng web cho phép **vẽ đồ thị trực quan**, **lưu dữ l
 
 ---
 
-## 🏗 Kiến trúc hệ thống
+##  Kiến trúc hệ thống
 
 Project được chia làm hai phần:
 
@@ -46,7 +46,7 @@ Project được chia làm hai phần:
 
 ---
 
-## 📁 Cấu trúc thư mục
+##  Cấu trúc thư mục
 
 ```plaintext
 graph-visualizer/
