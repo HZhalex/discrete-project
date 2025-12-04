@@ -1,7 +1,7 @@
 # Graph Visualizer & Algorithms Web Application
 
 Một ứng dụng web cho phép **vẽ đồ thị trực quan**, **lưu dữ liệu đồ thị**, và chạy các **thuật toán cơ bản** như BFS, DFS, tìm đường đi ngắn nhất, kiểm tra đồ thị hai phía, và chuyển đổi giữa các dạng biểu diễn đồ thị.
-(Toán rời rạc)
+
 ---
 
 ##  Tính năng chính
