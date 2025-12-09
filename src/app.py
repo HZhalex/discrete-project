@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, jsonify
 from collections import deque, defaultdict
 import heapq
+import os
 
 app = Flask(__name__)
 
@@ -8,13 +9,18 @@ class Graph:
     def __init__(self):
         self.graph = defaultdict(list)
         self.vertices = set()
+        self.is_directed = {}  # Lưu thông tin hướng của mỗi cạnh
     
     def add_edge(self, u, v, weight=1, directed=False):
         self.graph[u].append((v, weight))
         self.vertices.add(u)
         self.vertices.add(v)
+        edge_key = (u, v)
+        self.is_directed[edge_key] = directed
+        
         if not directed:
             self.graph[v].append((u, weight))
+            self.is_directed[(v, u)] = False
     
     def visualize(self):
         """Trả về dữ liệu đồ thị để hiển thị"""
@@ -27,9 +33,18 @@ class Graph:
         
         for u in self.graph:
             for v, weight in self.graph[u]:
-                edge_key = tuple(sorted([u, v]))
-                if edge_key not in seen_edges:
-                    edges.append({"from": u, "to": v, "label": str(weight)})
+                edge_key = (u, v)
+                reverse_key = (v, u)
+                
+                # Với đồ thị vô hướng, chỉ thêm cạnh một lần
+                if reverse_key not in seen_edges:
+                    is_directed = self.is_directed.get(edge_key, False)
+                    edges.append({
+                        "from": u, 
+                        "to": v, 
+                        "label": str(weight),
+                        "arrows": {"to": {"enabled": is_directed}}
+                    })
                     seen_edges.add(edge_key)
         
         return {"nodes": nodes, "edges": edges}
@@ -113,6 +128,7 @@ class Graph:
                     previous[neighbor] = current_vertex
                     heapq.heappush(pq, (distance, neighbor))
         
+        # Xây dựng đường đi
         path = []
         current = end
         while current is not None:
@@ -120,8 +136,9 @@ class Graph:
             current = previous[current]
         path.reverse()
         
-        if path[0] != start:
-            return None, float('inf'), []
+        # Kiểm tra đường đi có hợp lệ không
+        if not path or path[0] != start:
+            return [], float('inf'), []
         
         edges_used = [(path[i], path[i+1]) for i in range(len(path)-1)]
         return path, distances[end], edges_used
@@ -156,10 +173,14 @@ class Graph:
     def kruskal(self):
         """Tìm cây khung nhỏ nhất bằng Kruskal"""
         edges = []
+        seen = set()
+        
         for u in self.graph:
             for v, weight in self.graph[u]:
-                if u < v:
+                edge_key = tuple(sorted([u, v]))
+                if edge_key not in seen:
                     edges.append((weight, u, v))
+                    seen.add(edge_key)
         
         edges.sort()
         parent = {v: v for v in self.vertices}
@@ -290,17 +311,24 @@ def convert_representation():
     result = []
     
     if from_type == 'adjacency' and to_type == 'edge':
+        seen = set()
         for u in sorted(graph.vertices):
             for v, w in graph.graph[u]:
-                if u <= v:
+                edge_key = tuple(sorted([u, v]))
+                if edge_key not in seen:
                     result.append(f"{u} -- {v} (trọng số: {w})")
+                    seen.add(edge_key)
     elif from_type == 'adjacency' and to_type == 'incidence':
         result.append("Ma trận liên thuộc đỉnh-cạnh:")
         edges_list = []
+        seen = set()
+        
         for u in graph.graph:
             for v, w in graph.graph[u]:
-                if u <= v:
+                edge_key = tuple(sorted([u, v]))
+                if edge_key not in seen:
                     edges_list.append((u, v, w))
+                    seen.add(edge_key)
         
         vertices_sorted = sorted(graph.vertices)
         header = "    " + "  ".join([f"e{i}" for i in range(len(edges_list))])
