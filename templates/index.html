@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ứng dụng Đồ thị</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/vis-network.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .sidebar {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            height: fit-content;
+        }
+
+        .section {
+            margin-bottom: 25px;
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .section h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .input-group {
+            margin-bottom: 12px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+
+        input[type="text"],
+        input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 10px 0;
+        }
+
+        input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-bottom: 8px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+
+        .graph-container {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        #mynetwork {
+            height: 600px;
+            border: 3px solid #e0e0e0;
+            border-radius: 10px;
+            background: #fafafa;
+        }
+
+        .result-box {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f0f7ff;
+            border-left: 4px solid #667eea;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .result-box.show {
+            display: block;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .result-title {
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .result-content {
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .algorithm-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .algorithm-buttons button {
+            font-size: 13px;
+            padding: 10px;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔗 Ứng dụng Đồ thị</h1>
+            <p class="subtitle">Công cụ trực quan hóa và xử lý đồ thị</p>
+        </header>
+
+        <div class="main-content">
+            <div class="sidebar">
+                <!-- Phần cơ bản -->
+                <div class="section">
+                    <h3>1. Thêm Cạnh</h3>
+                    <div class="input-group">
+                        <label>Từ đỉnh:</label>
+                        <input type="text" id="fromVertex" placeholder="Ví dụ: A">
+                    </div>
+                    <div class="input-group">
+                        <label>Đến đỉnh:</label>
+                        <input type="text" id="toVertex" placeholder="Ví dụ: B">
+                    </div>
+                    <div class="input-group">
+                        <label>Trọng số:</label>
+                        <input type="number" id="weight" value="1" min="1">
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="directed">
+                        <label for="directed">Có hướng</label>
+                    </div>
+                    <button onclick="addEdge()">Thêm Cạnh</button>
+                </div>
+
+                <div class="section">
+                    <h3>2. Lưu & Quản lý</h3>
+                    <button class="btn-success" onclick="saveGraph()">💾 Lưu Đồ Thị</button>
+                    <button class="btn-danger" onclick="clearGraph()">🗑️ Xóa Toàn Bộ</button>
+                </div>
+
+                <div class="section">
+                    <h3>3. Duyệt Đồ Thị</h3>
+                    <div class="input-group">
+                        <label>Đỉnh bắt đầu:</label>
+                        <input type="text" id="startVertex" placeholder="Ví dụ: A">
+                    </div>
+                    <div class="grid-2">
+                        <button class="btn-secondary" onclick="runBFS()">BFS</button>
+                        <button class="btn-secondary" onclick="runDFS()">DFS</button>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3>4. Tìm Đường Đi</h3>
+                    <div class="input-group">
+                        <label>Từ đỉnh:</label>
+                        <input type="text" id="dijkstraStart" placeholder="Ví dụ: A">
+                    </div>
+                    <div class="input-group">
+                        <label>Đến đỉnh:</label>
+                        <input type="text" id="dijkstraEnd" placeholder="Ví dụ: E">
+                    </div>
+                    <button class="btn-success" onclick="runDijkstra()">Dijkstra</button>
+                </div>
+
+                <div class="section">
+                    <h3>5. Kiểm Tra 2 Phía</h3>
+                    <div class="input-group">
+                        <label>Đỉnh kiểm tra:</label>
+                        <input type="text" id="bipartiteVertex" placeholder="Ví dụ: A">
+                    </div>
+                    <button class="btn-secondary" onclick="checkBipartite()">Kiểm Tra</button>
+                </div>
+
+                <div class="section">
+                    <h3>6. Chuyển Đổi</h3>
+                    <div class="grid-2">
+                        <button onclick="convertGraph('adjacency', 'edge')">Kề → Cạnh</button>
+                        <button onclick="convertGraph('adjacency', 'incidence')">Kề → Ma Trận</button>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3>7. Cây Khung</h3>
+                    <div class="algorithm-buttons">
+                        <button class="btn-success" onclick="runPrim()">Prim</button>
+                        <button class="btn-success" onclick="runKruskal()">Kruskal</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="graph-container">
+                <div id="mynetwork"></div>
+                <div id="result" class="result-box">
+                    <div class="result-title">Kết quả:</div>
+                    <div class="result-content" id="resultContent"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let network;
+        let nodes = new vis.DataSet([]);
+        let edges = new vis.DataSet([]);
+
+        function initNetwork() {
+            const container = document.getElementById('mynetwork');
+            const data = { nodes: nodes, edges: edges };
+            const options = {
+                nodes: {
+                    shape: 'circle',
+                    size: 25,
+                    font: {
+                        size: 16,
+                        color: '#ffffff',
+                        face: 'arial'
+                    },
+                    color: {
+                        background: '#667eea',
+                        border: '#764ba2',
+                        highlight: {
+                            background: '#f093fb',
+                            border: '#f5576c'
+                        }
+                    },
+                    borderWidth: 3
+                },
+                edges: {
+                    width: 2,
+                    color: { color: '#848484', highlight: '#f5576c' },
+                    arrows: {
+                        to: { enabled: false }
+                    },
+                    font: {
+                        size: 14,
+                        align: 'middle',
+                        background: 'white'
+                    },
+                    smooth: {
+                        type: 'continuous'
+                    }
+                },
+                physics: {
+                    enabled: true,
+                    barnesHut: {
+                        gravitationalConstant: -2000,
+                        springConstant: 0.04,
+                        springLength: 150
+                    }
+                },
+                interaction: {
+                    hover: true,
+                    tooltipDelay: 200
+                }
+            };
+            network = new vis.Network(container, data, options);
+        }
+
+        function updateGraph(graphData) {
+            nodes.clear();
+            edges.clear();
+            
+            if (graphData.nodes) {
+                nodes.add(graphData.nodes);
+            }
+            
+            if (graphData.edges) {
+                edges.add(graphData.edges.map(edge => ({
+                    from: edge.from,
+                    to: edge.to,
+                    label: edge.label,
+                    id: `${edge.from}-${edge.to}`
+                })));
+            }
+        }
+
+        function showResult(message) {
+            const resultBox = document.getElementById('result');
+            const resultContent = document.getElementById('resultContent');
+            resultContent.innerHTML = message;
+            resultBox.classList.add('show');
+            
+            setTimeout(() => {
+                resultBox.classList.remove('show');
+            }, 8000);
+        }
+
+        async function addEdge() {
+            const from = document.getElementById('fromVertex').value.trim();
+            const to = document.getElementById('toVertex').value.trim();
+            const weight = document.getElementById('weight').value;
+            const directed = document.getElementById('directed').checked;
+
+            if (!from || !to) {
+                alert('Vui lòng nhập cả hai đỉnh!');
+                return;
+            }
+
+            const response = await fetch('/api/add_edge', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ from, to, weight, directed })
+            });
+
+            const data = await response.json();
+            updateGraph(data.graph);
+            showResult(`✅ Đã thêm cạnh ${from} → ${to} (trọng số: ${weight})`);
+        }
+
+        async function saveGraph() {
+            const response = await fetch('/api/save');
+            const data = await response.json();
+            showResult(`<strong>Danh sách kề:</strong><br>${data.adjacency_list.join('<br>')}`);
+        }
+
+        async function clearGraph() {
+            if (confirm('Bạn có chắc muốn xóa toàn bộ đồ thị?')) {
+                await fetch('/api/clear', { method: 'POST' });
+                nodes.clear();
+                edges.clear();
+                showResult('🗑️ Đã xóa toàn bộ đồ thị');
+            }
+        }
+
+        async function runBFS() {
+            const start = document.getElementById('startVertex').value.trim();
+            if (!start) {
+                alert('Vui lòng nhập đỉnh bắt đầu!');
+                return;
+            }
+
+            const response = await fetch('/api/bfs', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ start })
+            });
+
+            const data = await response.json();
+            showResult(`<strong>BFS từ ${start}:</strong><br>Thứ tự duyệt: ${data.order.join(' → ')}`);
+            highlightEdges(data.edges);
+        }
+
+        async function runDFS() {
+            const start = document.getElementById('startVertex').value.trim();
+            if (!start) {
+                alert('Vui lòng nhập đỉnh bắt đầu!');
+                return;
+            }
+
+            const response = await fetch('/api/dfs', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ start })
+            });
+
+            const data = await response.json();
+            showResult(`<strong>DFS từ ${start}:</strong><br>Thứ tự duyệt: ${data.order.join(' → ')}`);
+            highlightEdges(data.edges);
+        }
+
+        async function runDijkstra() {
+            const start = document.getElementById('dijkstraStart').value.trim();
+            const end = document.getElementById('dijkstraEnd').value.trim();
+            
+            if (!start || !end) {
+                alert('Vui lòng nhập cả hai đỉnh!');
+                return;
+            }
+
+            const response = await fetch('/api/dijkstra', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ start, end })
+            });
+
+            const data = await response.json();
+            
+            if (data.path && data.path.length > 0) {
+                showResult(`<strong>Đường đi ngắn nhất (Dijkstra):</strong><br>
+                    Từ ${start} → ${end}: ${data.path.join(' → ')}<br>
+                    Tổng trọng số: ${data.distance}`);
+                highlightEdges(data.edges);
+            } else {
+                showResult(`❌ Không tìm thấy đường đi từ ${start} đến ${end}`);
+            }
+        }
+
+        async function checkBipartite() {
+            const vertex = document.getElementById('bipartiteVertex').value.trim();
+            
+            if (!vertex) {
+                alert('Vui lòng nhập đỉnh kiểm tra!');
+                return;
+            }
+
+            const response = await fetch('/api/check_bipartite', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ vertex })
+            });
+
+            const data = await response.json();
+            const icon = data.is_bipartite ? '✅' : '❌';
+            showResult(`${icon} ${data.message}`);
+        }
+
+        async function convertGraph(from, to) {
+            const response = await fetch('/api/convert', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ from, to })
+            });
+
+            const data = await response.json();
+            showResult(`<strong>Chuyển đổi biểu diễn:</strong><br>${data.result.join('<br>')}`);
+        }
+
+        async function runPrim() {
+            const response = await fetch('/api/prim');
+            const data = await response.json();
+            
+            if (data.edges && data.edges.length > 0) {
+                const edgeStr = data.edges.map(e => `${e[0]}-${e[1]} (${e[2]})`).join(', ');
+                showResult(`<strong>Cây khung nhỏ nhất (Prim):</strong><br>
+                    Các cạnh: ${edgeStr}<br>
+                    Tổng trọng số: ${data.total_weight}`);
+                highlightEdges(data.edges_used.map(e => [e[0], e[1]]));
+            } else {
+                showResult('❌ Không thể tạo cây khung (đồ thị không liên thông)');
+            }
+        }
+
+        async function runKruskal() {
+            const response = await fetch('/api/kruskal');
+            const data = await response.json();
+            
+            if (data.edges && data.edges.length > 0) {
+                const edgeStr = data.edges.map(e => `${e[0]}-${e[1]} (${e[2]})`).join(', ');
+                showResult(`<strong>Cây khung nhỏ nhất (Kruskal):</strong><br>
+                    Các cạnh: ${edgeStr}<br>
+                    Tổng trọng số: ${data.total_weight}`);
+                highlightEdges(data.edges_used.map(e => [e[0], e[1]]));
+            } else {
+                showResult('❌ Không thể tạo cây khung (đồ thị không liên thông)');
+            }
+        }
+
+        function highlightEdges(edgeList) {
+            edges.forEach(edge => {
+                edges.update({
+                    id: edge.id,
+                    color: { color: '#848484' },
+                    width: 2
+                });
+            });
+
+            edgeList.forEach(([from, to]) => {
+                const edgeId = `${from}-${to}`;
+                const reverseEdgeId = `${to}-${from}`;
+                
+                if (edges.get(edgeId)) {
+                    edges.update({
+                        id: edgeId,
+                        color: { color: '#f5576c' },
+                        width: 4
+                    });
+                } else if (edges.get(reverseEdgeId)) {
+                    edges.update({
+                        id: reverseEdgeId,
+                        color: { color: '#f5576c' },
+                        width: 4
+                    });
+                }
+            });
+        }
+
+        async function loadGraph() {
+            const response = await fetch('/api/graph');
+            const data = await response.json();
+            updateGraph(data);
+        }
+
+        initNetwork();
+        loadGraph();
+    </script>
+</body>
+</html>
