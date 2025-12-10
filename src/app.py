@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, jsonify
 from collections import deque, defaultdict
 import heapq
-import copy
+import json
 
 app = Flask(__name__)
 
@@ -9,30 +9,23 @@ class Graph:
     def __init__(self):
         self.graph = defaultdict(list)
         self.vertices = set()
-        # Danh sách này dùng riêng để hiển thị (visualize) chính xác
-        # Lưu dict: {'u': u, 'v': v, 'w': w, 'directed': bool, 'id': str}
         self.visual_edges = [] 
     
     def add_edge(self, u, v, weight=1, directed=False):
-        # 1. Cập nhật danh sách kề cho thuật toán chạy
         self.graph[u].append((v, weight))
         self.vertices.add(u)
         self.vertices.add(v)
         if not directed:
             self.graph[v].append((u, weight))
         
-        # 2. Cập nhật danh sách hiển thị
-        # Tạo ID duy nhất để frontend không bị nhầm lẫn
         if directed:
             edge_id = f"{u}->{v}"
-            # Kiểm tra xem cạnh này đã có chưa để cập nhật trọng số
             existing = next((e for e in self.visual_edges if e['id'] == edge_id), None)
             if existing:
                 existing['w'] = weight
             else:
                 self.visual_edges.append({'u': u, 'v': v, 'w': weight, 'directed': True, 'id': edge_id})
         else:
-            # Với vô hướng, luôn lưu theo thứ tự nhỏ->lớn để tránh trùng A-B và B-A
             u_sorted, v_sorted = sorted([u, v])
             edge_id = f"{u_sorted}-{v_sorted}"
             existing = next((e for e in self.visual_edges if e['id'] == edge_id), None)
@@ -42,13 +35,10 @@ class Graph:
                 self.visual_edges.append({'u': u_sorted, 'v': v_sorted, 'w': weight, 'directed': False, 'id': edge_id})
     
     def visualize(self):
-        """Trả về dữ liệu đồ thị để hiển thị"""
         nodes = []
-        # Tạo node
         for vertex in sorted(list(self.vertices)):
             nodes.append({"id": vertex, "label": vertex})
         
-        # Tạo edge từ danh sách visual_edges đã lưu chuẩn xác
         edges = []
         for e in self.visual_edges:
             edge_data = {
@@ -57,18 +47,96 @@ class Graph:
                 "label": str(e['w']),
                 "id": e['id']
             }
-            # Nếu có hướng thì thêm thuộc tính arrows
             if e['directed']:
                 edge_data["arrows"] = "to"
             else:
-                edge_data["arrows"] = "" # Không có mũi tên
-            
+                edge_data["arrows"] = ""
             edges.append(edge_data)
         
         return {"nodes": nodes, "edges": edges}
     
+    def to_adjacency_list(self):
+        """Chuyển sang danh sách kề"""
+        result = {}
+        for vertex in sorted(list(self.vertices)):
+            neighbors = []
+            if vertex in self.graph:
+                for v, w in self.graph[vertex]:
+                    neighbors.append({"vertex": v, "weight": w})
+            result[vertex] = neighbors
+        return result
+    
+    def to_adjacency_matrix(self):
+        """Chuyển sang ma trận kề"""
+        vertices_list = sorted(list(self.vertices))
+        n = len(vertices_list)
+        matrix = [[0] * n for _ in range(n)]
+        vertex_index = {v: i for i, v in enumerate(vertices_list)}
+        
+        for u in self.graph:
+            for v, w in self.graph[u]:
+                i, j = vertex_index[u], vertex_index[v]
+                matrix[i][j] = w
+        
+        return {
+            "vertices": vertices_list,
+            "matrix": matrix
+        }
+    
+    def to_edge_list(self):
+        """Chuyển sang danh sách cạnh"""
+        edges = []
+        seen = set()
+        for e in self.visual_edges:
+            if e['directed']:
+                edges.append({
+                    "from": e['u'],
+                    "to": e['v'],
+                    "weight": e['w'],
+                    "directed": True
+                })
+            else:
+                edge_key = frozenset([e['u'], e['v']])
+                if edge_key not in seen:
+                    edges.append({
+                        "from": e['u'],
+                        "to": e['v'],
+                        "weight": e['w'],
+                        "directed": False
+                    })
+                    seen.add(edge_key)
+        return edges
+    
+    def export_json(self):
+        """Xuất đồ thị ra JSON format chuẩn"""
+        return {
+            "vertices": sorted(list(self.vertices)),
+            "edges": self.to_edge_list(),
+            "adjacency_list": self.to_adjacency_list(),
+            "adjacency_matrix": self.to_adjacency_matrix()
+        }
+    
+    def import_json(self, data):
+        """Nhập đồ thị từ JSON"""
+        self.graph.clear()
+        self.vertices.clear()
+        self.visual_edges.clear()
+        
+        # Thêm các đỉnh
+        if "vertices" in data:
+            for v in data["vertices"]:
+                self.vertices.add(v)
+        
+        # Thêm các cạnh
+        if "edges" in data:
+            for edge in data["edges"]:
+                u = edge.get("from")
+                v = edge.get("to")
+                w = edge.get("weight", 1)
+                directed = edge.get("directed", False)
+                self.add_edge(u, v, w, directed)
+    
     def save_graph(self):
-        """Lưu đồ thị dưới dạng danh sách kề"""
         result = []
         for vertex in sorted(list(self.vertices)):
             neighbors = []
@@ -78,7 +146,6 @@ class Graph:
             result.append(f"{vertex}: {', '.join(neighbors) if neighbors else 'không có kề'}")
         return result
 
-    # --- CÁC THUẬT TOÁN GIỮ NGUYÊN ---
     def bfs(self, start):
         if start not in self.vertices:
             return [], []
@@ -121,9 +188,21 @@ class Graph:
         dfs_visit(start)
         return order, edges_used
     
+    def has_negative_weight(self):
+        """Kiểm tra xem đồ thị có cạnh trọng số âm không"""
+        for u in self.graph:
+            for v, weight in self.graph[u]:
+                if weight < 0:
+                    return True
+        return False
+    
     def dijkstra(self, start, end):
         if start not in self.vertices or end not in self.vertices:
-            return None, float('inf'), []
+            return None, float('inf'), [], False
+        
+        # Kiểm tra trọng số âm
+        if self.has_negative_weight():
+            return None, float('inf'), [], True  # True = có trọng số âm
         
         distances = {vertex: float('inf') for vertex in self.vertices}
         distances[start] = 0
@@ -152,7 +231,7 @@ class Graph:
         path = []
         current = end
         if distances[end] == float('inf'):
-             return None, float('inf'), []
+             return None, float('inf'), [], False
 
         while current is not None:
             path.append(current)
@@ -160,16 +239,15 @@ class Graph:
         path.reverse()
         
         if not path or path[0] != start:
-            return None, float('inf'), []
+            return None, float('inf'), [], False
         
         edges_used = [(path[i], path[i+1]) for i in range(len(path)-1)]
-        return path, distances[end], edges_used
+        return path, distances[end], edges_used, False
     
     def prim(self):
         if not self.vertices:
             return [], 0, []
         
-        # Đảm bảo đồ thị vô hướng cho Prim (nếu dùng có hướng logic sẽ khác)
         start = next(iter(self.vertices))
         visited = {start}
         edges = []
@@ -196,7 +274,6 @@ class Graph:
     
     def kruskal(self):
         edges = []
-        # Thu thập cạnh duy nhất (tránh lặp vô hướng)
         seen_edges = set()
         for u in self.graph:
             for v, weight in self.graph[u]:
@@ -292,18 +369,11 @@ class Graph:
         if start not in self.vertices:
             return [], "Đỉnh không tồn tại"
         
-        # Copy đồ thị để xử lý
         temp_graph = defaultdict(list)
         for u in self.graph:
-            temp_graph[u] = list(self.graph[u]) # Shallow copy list
+            temp_graph[u] = list(self.graph[u])
             
-        # Đếm bậc
         odd_vertices = []
-        degrees = defaultdict(int)
-        
-        # Tính bậc chính xác cho đồ thị vô hướng
-        # Lưu ý: self.graph hiện tại lưu cả chiều đi và về cho vô hướng
-        # nên len(graph[u]) chính là bậc
         for v in self.vertices:
             if len(temp_graph[v]) % 2 == 1:
                 odd_vertices.append(v)
@@ -314,9 +384,8 @@ class Graph:
             return [], f"Phải bắt đầu từ đỉnh bậc lẻ: {odd_vertices}"
 
         def is_bridge(u, v):
-            if len(temp_graph[u]) == 1: return False # Cạnh duy nhất thì cứ đi
+            if len(temp_graph[u]) == 1: return False
             
-            # BFS đếm số đỉnh
             def count_reachable(s):
                 count = 0
                 visited = set([s])
@@ -332,17 +401,12 @@ class Graph:
 
             c1 = count_reachable(u)
             
-            # Xóa tạm cạnh u-v
             temp_graph[u].remove((v, next(w for n, w in temp_graph[u] if n == v)))
             temp_graph[v].remove((u, next(w for n, w in temp_graph[v] if n == u)))
             
             c2 = count_reachable(u)
             
-            # Thêm lại cạnh
-            # (Lưu ý: Logic này hơi rườm rà, trong thực tế Hierholzer tốt hơn Fleury nhiều)
-            # Ở đây chỉ vá lỗi crash, không tối ưu lại thuật toán gốc của bạn quá nhiều
-            # để tránh thay đổi hành vi mong muốn
-            weight = 1 # Giả sử
+            weight = 1
             temp_graph[u].append((v, weight))
             temp_graph[v].append((u, weight))
             
@@ -352,7 +416,6 @@ class Graph:
         curr = start
         edges_used = []
         
-        # Giới hạn lặp để tránh treo nếu bug
         limit = 1000
         while limit > 0:
             limit -= 1
@@ -360,26 +423,21 @@ class Graph:
                 break
                 
             next_v = None
-            # Ưu tiên chọn cạnh không phải cầu
             for v, w in temp_graph[curr]:
                 if not is_bridge(curr, v):
                     next_v = v
                     break
             
-            # Nếu tất cả là cầu thì chọn đại
             if next_v is None and temp_graph[curr]:
                 next_v = temp_graph[curr][0][0]
                 
             if next_v:
                 edges_used.append((curr, next_v))
                 
-                # Xóa cạnh trong temp_graph (xóa cả 2 chiều)
-                # Tìm và xóa u->v
                 for i, (n, w) in enumerate(temp_graph[curr]):
                     if n == next_v:
                         temp_graph[curr].pop(i)
                         break
-                # Tìm và xóa v->u
                 for i, (n, w) in enumerate(temp_graph[next_v]):
                     if n == curr:
                         temp_graph[next_v].pop(i)
@@ -393,7 +451,6 @@ class Graph:
         return path, edges_used
 
     def hierholzer(self, start):
-        # Code gốc của bạn cơ bản ổn, chỉ fix lỗi truy cập key
         if start not in self.vertices:
             return [], "Đỉnh không tồn tại"
             
@@ -408,10 +465,8 @@ class Graph:
         while stack:
             v = stack[-1]
             if temp_graph[v]:
-                neighbor, weight = temp_graph[v][0] # Lấy phần tử đầu
-                # Xóa cạnh
+                neighbor, weight = temp_graph[v][0]
                 temp_graph[v].pop(0)
-                # Xóa chiều ngược lại
                 for i, (n, w) in enumerate(temp_graph[neighbor]):
                     if n == v:
                         temp_graph[neighbor].pop(i)
@@ -425,7 +480,6 @@ class Graph:
         path.reverse()
         return path, edges_used
 
-# Khởi tạo đồ thị
 graph = Graph()
 
 @app.route('/')
@@ -451,7 +505,6 @@ def add_edge():
         graph.add_edge(u, v, weight, directed)
         return jsonify({"success": True, "graph": graph.visualize()})
     except Exception as e:
-        print(f"Error: {e}")
         return jsonify({"success": False, "message": str(e)}), 400
 
 @app.route('/api/save', methods=['GET'])
@@ -464,7 +517,35 @@ def clear_graph():
     graph = Graph()
     return jsonify({"success": True})
 
-# --- Các route thuật toán ---
+@app.route('/api/export', methods=['GET'])
+def export_graph():
+    """Xuất đồ thị ra JSON"""
+    return jsonify(graph.export_json())
+
+@app.route('/api/import', methods=['POST'])
+def import_graph():
+    """Nhập đồ thị từ JSON"""
+    try:
+        data = request.json
+        graph.import_json(data)
+        return jsonify({"success": True, "graph": graph.visualize()})
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 400
+
+@app.route('/api/convert', methods=['POST'])
+def convert():
+    """Chuyển đổi giữa các biểu diễn"""
+    convert_type = request.json.get('type', 'adjacency_list')
+    
+    if convert_type == 'adjacency_list':
+        return jsonify({"result": graph.to_adjacency_list()})
+    elif convert_type == 'adjacency_matrix':
+        return jsonify({"result": graph.to_adjacency_matrix()})
+    elif convert_type == 'edge_list':
+        return jsonify({"result": graph.to_edge_list()})
+    else:
+        return jsonify({"success": False, "message": "Loại chuyển đổi không hợp lệ"})
+
 @app.route('/api/bfs', methods=['POST'])
 def run_bfs():
     data = request.json
@@ -505,7 +586,7 @@ def run_ff():
 def run_fleury():
     data = request.json
     res = graph.fleury(data.get('start'))
-    if isinstance(res[1], str): # Check error message
+    if isinstance(res[1], str):
          return jsonify({"success": False, "message": res[1]})
     return jsonify({"success": True, "path": res[0], "edges": res[1]})
 
@@ -519,17 +600,11 @@ def run_hierholzer():
 
 @app.route('/api/check_bipartite', methods=['POST'])
 def check_bipartite():
-    # Logic kiểm tra 2 phía
     vertex = request.json.get('vertex')
     if vertex not in graph.vertices:
         return jsonify({"is_bipartite": False, "message": "Đỉnh không tồn tại"})
     
     color = {v: -1 for v in graph.vertices}
-    queue = deque([vertex])
-    color[vertex] = 0
-    is_bip = True
-    
-    # Cần duyệt qua tất cả thành phần liên thông
     visited_global = set()
     
     for start_node in list(graph.vertices):
@@ -550,11 +625,6 @@ def check_bipartite():
                         return jsonify({"is_bipartite": False, "message": "Không phải đồ thị 2 phía"})
                         
     return jsonify({"is_bipartite": True, "message": "Là đồ thị 2 phía"})
-
-@app.route('/api/convert', methods=['POST'])
-def convert():
-    # Logic chuyển đổi đơn giản
-    return jsonify({"result": graph.save_graph()}) # Tạm thời trả về save_graph
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
