@@ -58,6 +58,23 @@
             border-radius: 15px;
             padding: 20px;
             height: fit-content;
+            max-height: calc(100vh - 200px);
+            overflow-y: auto;
+        }
+
+        /* Custom scrollbar */
+        .sidebar::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .sidebar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 10px;
         }
 
         .section {
@@ -152,6 +169,16 @@
             background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
         }
 
+        .btn-warning {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            color: #333;
+        }
+
+        .btn-info {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            color: #333;
+        }
+
         .graph-container {
             background: white;
             border-radius: 15px;
@@ -178,6 +205,16 @@
         .result-box.show {
             display: block;
             animation: slideIn 0.3s ease-out;
+        }
+
+        .result-box.error {
+            background: #fff5f5;
+            border-left-color: #f5576c;
+        }
+
+        .result-box.success {
+            background: #f0fff4;
+            border-left-color: #00f2fe;
         }
 
         @keyframes slideIn {
@@ -218,6 +255,21 @@
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 8px;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+            margin-left: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
 
         @media (max-width: 1024px) {
@@ -307,10 +359,35 @@
                 </div>
 
                 <div class="section">
-                    <h3>7. Cây Khung</h3>
+                    <h3>7. Cây Khung Nhỏ Nhất</h3>
                     <div class="algorithm-buttons">
                         <button class="btn-success" onclick="runPrim()">Prim</button>
                         <button class="btn-success" onclick="runKruskal()">Kruskal</button>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3>8. Luồng Cực Đại</h3>
+                    <div class="input-group">
+                        <label>Đỉnh nguồn:</label>
+                        <input type="text" id="flowSource" placeholder="Ví dụ: S">
+                    </div>
+                    <div class="input-group">
+                        <label>Đỉnh đích:</label>
+                        <input type="text" id="flowSink" placeholder="Ví dụ: T">
+                    </div>
+                    <button class="btn-warning" onclick="runFordFulkerson()">Ford-Fulkerson</button>
+                </div>
+
+                <div class="section">
+                    <h3>9. Đường Đi Euler</h3>
+                    <div class="input-group">
+                        <label>Đỉnh bắt đầu:</label>
+                        <input type="text" id="eulerStart" placeholder="Ví dụ: A">
+                    </div>
+                    <div class="algorithm-buttons">
+                        <button class="btn-info" onclick="runFleury()">Fleury</button>
+                        <button class="btn-info" onclick="runHierholzer()">Hierholzer</button>
                     </div>
                 </div>
             </div>
@@ -373,6 +450,9 @@
                         gravitationalConstant: -2000,
                         springConstant: 0.04,
                         springLength: 150
+                    },
+                    stabilization: {
+                        iterations: 150
                     }
                 },
                 interaction: {
@@ -401,15 +481,35 @@
             }
         }
 
-        function showResult(message) {
+        function showResult(message, type = 'info') {
             const resultBox = document.getElementById('result');
             const resultContent = document.getElementById('resultContent');
+            
+            resultBox.className = 'result-box show';
+            if (type === 'error') {
+                resultBox.classList.add('error');
+            } else if (type === 'success') {
+                resultBox.classList.add('success');
+            }
+            
             resultContent.innerHTML = message;
-            resultBox.classList.add('show');
             
             setTimeout(() => {
                 resultBox.classList.remove('show');
-            }, 8000);
+            }, 10000);
+        }
+
+        async function fetchWithErrorHandling(url, options = {}) {
+            try {
+                const response = await fetch(url, options);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return await response.json();
+            } catch (error) {
+                showResult(`❌ Lỗi: ${error.message}`, 'error');
+                throw error;
+            }
         }
 
         async function addEdge() {
@@ -419,70 +519,76 @@
             const directed = document.getElementById('directed').checked;
 
             if (!from || !to) {
-                alert('Vui lòng nhập cả hai đỉnh!');
+                showResult('⚠️ Vui lòng nhập cả hai đỉnh!', 'error');
                 return;
             }
 
-            const response = await fetch('/api/add_edge', {
+            const data = await fetchWithErrorHandling('/api/add_edge', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ from, to, weight, directed })
             });
 
-            const data = await response.json();
             updateGraph(data.graph);
-            showResult(`✅ Đã thêm cạnh ${from} → ${to} (trọng số: ${weight})`);
+            showResult(`✅ Đã thêm cạnh ${from} → ${to} (trọng số: ${weight})`, 'success');
         }
 
         async function saveGraph() {
-            const response = await fetch('/api/save');
-            const data = await response.json();
-            showResult(`<strong>Danh sách kề:</strong><br>${data.adjacency_list.join('<br>')}`);
+            const data = await fetchWithErrorHandling('/api/save');
+            showResult(`<strong>Danh sách kề:</strong><br>${data.adjacency_list.join('<br>')}`, 'info');
         }
 
         async function clearGraph() {
             if (confirm('Bạn có chắc muốn xóa toàn bộ đồ thị?')) {
-                await fetch('/api/clear', { method: 'POST' });
+                await fetchWithErrorHandling('/api/clear', { method: 'POST' });
                 nodes.clear();
                 edges.clear();
-                showResult('🗑️ Đã xóa toàn bộ đồ thị');
+                showResult('🗑️ Đã xóa toàn bộ đồ thị', 'success');
             }
         }
 
         async function runBFS() {
             const start = document.getElementById('startVertex').value.trim();
             if (!start) {
-                alert('Vui lòng nhập đỉnh bắt đầu!');
+                showResult('⚠️ Vui lòng nhập đỉnh bắt đầu!', 'error');
                 return;
             }
 
-            const response = await fetch('/api/bfs', {
+            const data = await fetchWithErrorHandling('/api/bfs', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ start })
             });
 
-            const data = await response.json();
-            showResult(`<strong>BFS từ ${start}:</strong><br>Thứ tự duyệt: ${data.order.join(' → ')}`);
-            highlightEdges(data.edges);
+            if (data.order.length === 0) {
+                showResult('❌ Đỉnh không tồn tại trong đồ thị', 'error');
+                return;
+            }
+
+            showResult(`<strong>BFS từ ${start}:</strong><br>Thứ tự duyệt: ${data.order.join(' → ')}`, 'success');
+            await animateEdges(data.edges);
         }
 
         async function runDFS() {
             const start = document.getElementById('startVertex').value.trim();
             if (!start) {
-                alert('Vui lòng nhập đỉnh bắt đầu!');
+                showResult('⚠️ Vui lòng nhập đỉnh bắt đầu!', 'error');
                 return;
             }
 
-            const response = await fetch('/api/dfs', {
+            const data = await fetchWithErrorHandling('/api/dfs', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ start })
             });
 
-            const data = await response.json();
-            showResult(`<strong>DFS từ ${start}:</strong><br>Thứ tự duyệt: ${data.order.join(' → ')}`);
-            highlightEdges(data.edges);
+            if (data.order.length === 0) {
+                showResult('❌ Đỉnh không tồn tại trong đồ thị', 'error');
+                return;
+            }
+
+            showResult(`<strong>DFS từ ${start}:</strong><br>Thứ tự duyệt: ${data.order.join(' → ')}`, 'success');
+            await animateEdges(data.edges);
         }
 
         async function runDijkstra() {
@@ -490,25 +596,23 @@
             const end = document.getElementById('dijkstraEnd').value.trim();
             
             if (!start || !end) {
-                alert('Vui lòng nhập cả hai đỉnh!');
+                showResult('⚠️ Vui lòng nhập cả hai đỉnh!', 'error');
                 return;
             }
 
-            const response = await fetch('/api/dijkstra', {
+            const data = await fetchWithErrorHandling('/api/dijkstra', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ start, end })
             });
 
-            const data = await response.json();
-            
             if (data.path && data.path.length > 0) {
                 showResult(`<strong>Đường đi ngắn nhất (Dijkstra):</strong><br>
                     Từ ${start} → ${end}: ${data.path.join(' → ')}<br>
-                    Tổng trọng số: ${data.distance}`);
-                highlightEdges(data.edges);
+                    Tổng trọng số: ${data.distance}`, 'success');
+                await animateEdges(data.edges);
             } else {
-                showResult(`❌ Không tìm thấy đường đi từ ${start} đến ${end}`);
+                showResult(`❌ Không tìm thấy đường đi từ ${start} đến ${end}`, 'error');
             }
         }
 
@@ -516,63 +620,144 @@
             const vertex = document.getElementById('bipartiteVertex').value.trim();
             
             if (!vertex) {
-                alert('Vui lòng nhập đỉnh kiểm tra!');
+                showResult('⚠️ Vui lòng nhập đỉnh kiểm tra!', 'error');
                 return;
             }
 
-            const response = await fetch('/api/check_bipartite', {
+            const data = await fetchWithErrorHandling('/api/check_bipartite', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ vertex })
             });
 
-            const data = await response.json();
             const icon = data.is_bipartite ? '✅' : '❌';
-            showResult(`${icon} ${data.message}`);
+            const type = data.is_bipartite ? 'success' : 'error';
+            showResult(`${icon} ${data.message}`, type);
         }
 
         async function convertGraph(from, to) {
-            const response = await fetch('/api/convert', {
+            const data = await fetchWithErrorHandling('/api/convert', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ from, to })
             });
 
-            const data = await response.json();
-            showResult(`<strong>Chuyển đổi biểu diễn:</strong><br>${data.result.join('<br>')}`);
+            showResult(`<strong>Chuyển đổi biểu diễn:</strong><br>${data.result.join('<br>')}`, 'info');
         }
 
         async function runPrim() {
-            const response = await fetch('/api/prim');
-            const data = await response.json();
+            const data = await fetchWithErrorHandling('/api/prim');
             
             if (data.edges && data.edges.length > 0) {
                 const edgeStr = data.edges.map(e => `${e[0]}-${e[1]} (${e[2]})`).join(', ');
                 showResult(`<strong>Cây khung nhỏ nhất (Prim):</strong><br>
                     Các cạnh: ${edgeStr}<br>
-                    Tổng trọng số: ${data.total_weight}`);
-                highlightEdges(data.edges_used.map(e => [e[0], e[1]]));
+                    Tổng trọng số: ${data.total_weight}`, 'success');
+                await animateEdges(data.edges_used.map(e => [e[0], e[1]]));
             } else {
-                showResult('❌ Không thể tạo cây khung (đồ thị không liên thông)');
+                showResult('❌ Không thể tạo cây khung (đồ thị không liên thông)', 'error');
             }
         }
 
         async function runKruskal() {
-            const response = await fetch('/api/kruskal');
-            const data = await response.json();
+            const data = await fetchWithErrorHandling('/api/kruskal');
             
             if (data.edges && data.edges.length > 0) {
                 const edgeStr = data.edges.map(e => `${e[0]}-${e[1]} (${e[2]})`).join(', ');
                 showResult(`<strong>Cây khung nhỏ nhất (Kruskal):</strong><br>
                     Các cạnh: ${edgeStr}<br>
-                    Tổng trọng số: ${data.total_weight}`);
-                highlightEdges(data.edges_used.map(e => [e[0], e[1]]));
+                    Tổng trọng số: ${data.total_weight}`, 'success');
+                await animateEdges(data.edges_used.map(e => [e[0], e[1]]));
             } else {
-                showResult('❌ Không thể tạo cây khung (đồ thị không liên thông)');
+                showResult('❌ Không thể tạo cây khung (đồ thị không liên thông)', 'error');
             }
         }
 
-        function highlightEdges(edgeList) {
+        async function runFordFulkerson() {
+            const source = document.getElementById('flowSource').value.trim();
+            const sink = document.getElementById('flowSink').value.trim();
+            
+            if (!source || !sink) {
+                showResult('⚠️ Vui lòng nhập đỉnh nguồn và đích!', 'error');
+                return;
+            }
+
+            const data = await fetchWithErrorHandling('/api/ford_fulkerson', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ source, sink })
+            });
+
+            if (data.success) {
+                let pathsStr = '';
+                data.paths.forEach((p, i) => {
+                    const pathEdges = p.path.map(e => `${e[0]}→${e[1]}`).join(' → ');
+                    pathsStr += `<br>  Đường ${i+1}: ${pathEdges} (luồng: ${p.flow})`;
+                });
+
+                showResult(`<strong>Luồng cực đại (Ford-Fulkerson):</strong><br>
+                    Từ ${source} → ${sink}<br>
+                    Luồng cực đại: <strong>${data.max_flow}</strong>
+                    ${pathsStr}`, 'success');
+
+                // Highlight tất cả các cạnh trong các đường tăng luồng
+                const allEdges = data.paths.flatMap(p => p.path);
+                await animateEdges(allEdges);
+            } else {
+                showResult('❌ Không thể tính luồng cực đại', 'error');
+            }
+        }
+
+        async function runFleury() {
+            const start = document.getElementById('eulerStart').value.trim();
+            
+            if (!start) {
+                showResult('⚠️ Vui lòng nhập đỉnh bắt đầu!', 'error');
+                return;
+            }
+
+            const data = await fetchWithErrorHandling('/api/fleury', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ start })
+            });
+
+            if (data.success) {
+                showResult(`<strong>Đường đi Euler (Fleury):</strong><br>
+                    Bắt đầu từ: ${start}<br>
+                    Đường đi: ${data.path.join(' → ')}`, 'success');
+                await animateEdges(data.edges);
+            } else {
+                showResult(`❌ ${data.message}`, 'error');
+            }
+        }
+
+        async function runHierholzer() {
+            const start = document.getElementById('eulerStart').value.trim();
+            
+            if (!start) {
+                showResult('⚠️ Vui lòng nhập đỉnh bắt đầu!', 'error');
+                return;
+            }
+
+            const data = await fetchWithErrorHandling('/api/hierholzer', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ start })
+            });
+
+            if (data.success) {
+                showResult(`<strong>Chu trình Euler (Hierholzer):</strong><br>
+                    Bắt đầu từ: ${start}<br>
+                    Chu trình: ${data.path.join(' → ')}`, 'success');
+                await animateEdges(data.edges);
+            } else {
+                showResult(`❌ ${data.message}`, 'error');
+            }
+        }
+
+        async function animateEdges(edgeList) {
+            // Reset tất cả cạnh về màu mặc định
             edges.forEach(edge => {
                 edges.update({
                     id: edge.id,
@@ -581,7 +766,11 @@
                 });
             });
 
-            edgeList.forEach(([from, to]) => {
+            // Animate từng cạnh với delay
+            for (let i = 0; i < edgeList.length; i++) {
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                const [from, to] = edgeList[i];
                 const edgeId = `${from}-${to}`;
                 const reverseEdgeId = `${to}-${from}`;
                 
@@ -598,15 +787,15 @@
                         width: 4
                     });
                 }
-            });
+            }
         }
 
         async function loadGraph() {
-            const response = await fetch('/api/graph');
-            const data = await response.json();
+            const data = await fetchWithErrorHandling('/api/graph');
             updateGraph(data);
         }
 
+        // Initialize
         initNetwork();
         loadGraph();
     </script>
