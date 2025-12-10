@@ -1,6 +1,8 @@
+# -*- coding: utf-8 -*-
 from flask import Flask, render_template, request, jsonify
 from collections import deque, defaultdict
 import heapq
+import copy
 
 app = Flask(__name__)
 
@@ -192,13 +194,211 @@ class Graph:
                 total_weight += weight
         
         return mst_edges, total_weight, mst_edges
+    
+    def ford_fulkerson(self, source, sink):
+        """
+        Thuật toán Ford-Fulkerson tìm luồng cực đại
+        Sử dụng BFS để tìm đường tăng luồng (Edmonds-Karp)
+        """
+        if source not in self.vertices or sink not in self.vertices:
+            return 0, []
+        
+        # Tạo đồ thị dư (residual graph)
+        residual = defaultdict(lambda: defaultdict(int))
+        for u in self.graph:
+            for v, capacity in self.graph[u]:
+                residual[u][v] = capacity
+        
+        parent = {}
+        max_flow = 0
+        paths = []  # Lưu các đường tăng luồng
+        
+        def bfs_find_path():
+            """Tìm đường tăng luồng bằng BFS"""
+            visited = {source}
+            queue = deque([source])
+            parent.clear()
+            parent[source] = None
+            
+            while queue:
+                u = queue.popleft()
+                
+                for v in residual[u]:
+                    if v not in visited and residual[u][v] > 0:
+                        visited.add(v)
+                        queue.append(v)
+                        parent[v] = u
+                        
+                        if v == sink:
+                            return True
+            return False
+        
+        # Tìm các đường tăng luồng
+        while bfs_find_path():
+            # Tìm luồng nhỏ nhất trên đường đi
+            path_flow = float('inf')
+            s = sink
+            path = []
+            
+            while s != source:
+                path.append((parent[s], s))
+                path_flow = min(path_flow, residual[parent[s]][s])
+                s = parent[s]
+            
+            path.reverse()
+            paths.append({"path": path, "flow": path_flow})
+            
+            # Cập nhật residual graph
+            v = sink
+            while v != source:
+                u = parent[v]
+                residual[u][v] -= path_flow
+                residual[v][u] += path_flow
+                v = parent[v]
+            
+            max_flow += path_flow
+        
+        return max_flow, paths
+    
+    def fleury(self, start):
+        """
+        Thuật toán Fleury tìm đường đi Euler
+        """
+        if start not in self.vertices:
+            return [], "Đỉnh không tồn tại"
+        
+        # Kiểm tra điều kiện Euler
+        odd_vertices = []
+        for v in self.vertices:
+            degree = len(self.graph[v])
+            if degree % 2 == 1:
+                odd_vertices.append(v)
+        
+        if len(odd_vertices) > 2:
+            return [], "Đồ thị không có đường đi Euler (có > 2 đỉnh bậc lẻ)"
+        
+        if len(odd_vertices) == 2 and start not in odd_vertices:
+            return [], f"Đường đi Euler phải bắt đầu từ đỉnh bậc lẻ: {odd_vertices[0]} hoặc {odd_vertices[1]}"
+        
+        # Tạo bản sao đồ thị để xóa cạnh
+        temp_graph = defaultdict(list)
+        for u in self.graph:
+            temp_graph[u] = list(self.graph[u])
+        
+        def is_bridge(u, v, graph):
+            """Kiểm tra cạnh (u,v) có phải cầu không"""
+            # Đếm số đỉnh đạt được từ u
+            visited = set()
+            queue = deque([u])
+            visited.add(u)
+            
+            while queue:
+                node = queue.popleft()
+                for neighbor, _ in graph[node]:
+                    if neighbor not in visited:
+                        visited.add(neighbor)
+                        queue.append(neighbor)
+            
+            count_before = len(visited)
+            
+            # Xóa cạnh tạm thời
+            temp_edges_u = [(n, w) for n, w in graph[u] if n != v]
+            temp_edges_v = [(n, w) for n, w in graph[v] if n != u]
+            
+            # Đếm lại
+            visited = set()
+            queue = deque([u])
+            visited.add(u)
+            
+            while queue:
+                node = queue.popleft()
+                edges = temp_edges_u if node == u else (temp_edges_v if node == v else graph[node])
+                for neighbor, _ in edges:
+                    if neighbor not in visited:
+                        visited.add(neighbor)
+                        queue.append(neighbor)
+            
+            count_after = len(visited)
+            return count_after < count_before
+        
+        path = [start]
+        current = start
+        edges_used = []
+        
+        while temp_graph[current]:
+            # Tìm cạnh không phải cầu
+            found = False
+            for i, (neighbor, weight) in enumerate(temp_graph[current]):
+                if not is_bridge(current, neighbor, temp_graph) or len(temp_graph[current]) == 1:
+                    # Đi qua cạnh này
+                    edges_used.append((current, neighbor))
+                    path.append(neighbor)
+                    
+                    # Xóa cạnh
+                    temp_graph[current].pop(i)
+                    for j, (n, w) in enumerate(temp_graph[neighbor]):
+                        if n == current:
+                            temp_graph[neighbor].pop(j)
+                            break
+                    
+                    current = neighbor
+                    found = True
+                    break
+            
+            if not found:
+                break
+        
+        return path, edges_used
+    
+    def hierholzer(self, start):
+        """
+        Thuật toán Hierholzer tìm chu trình Euler
+        """
+        if start not in self.vertices:
+            return [], "Đỉnh không tồn tại"
+        
+        # Kiểm tra điều kiện Euler circuit
+        for v in self.vertices:
+            degree = len(self.graph[v])
+            if degree % 2 == 1:
+                return [], "Đồ thị không có chu trình Euler (có đỉnh bậc lẻ)"
+        
+        # Tạo bản sao đồ thị
+        temp_graph = defaultdict(list)
+        for u in self.graph:
+            temp_graph[u] = list(self.graph[u])
+        
+        stack = [start]
+        path = []
+        edges_used = []
+        
+        while stack:
+            v = stack[-1]
+            if temp_graph[v]:
+                # Lấy cạnh kề
+                u = v
+                neighbor, weight = temp_graph[v].pop()
+                
+                # Xóa cạnh ngược
+                for i, (n, w) in enumerate(temp_graph[neighbor]):
+                    if n == u:
+                        temp_graph[neighbor].pop(i)
+                        break
+                
+                stack.append(neighbor)
+                edges_used.append((u, neighbor))
+            else:
+                path.append(stack.pop())
+        
+        path.reverse()
+        return path, edges_used
 
 # Khởi tạo đồ thị mẫu
 graph = Graph()
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('index.html'), 200, {'Content-Type': 'text/html; charset=utf-8'}
 
 @app.route('/api/graph', methods=['GET'])
 def get_graph():
@@ -251,6 +451,71 @@ def run_prim():
 def run_kruskal():
     edges, weight, edges_used = graph.kruskal()
     return jsonify({"edges": edges, "total_weight": weight, "edges_used": edges_used})
+
+@app.route('/api/ford_fulkerson', methods=['POST'])
+def run_ford_fulkerson():
+    """API cho thuật toán Ford-Fulkerson"""
+    data = request.json
+    source = data.get('source')
+    sink = data.get('sink')
+    
+    if not source or not sink:
+        return jsonify({"error": "Cần cung cấp đỉnh nguồn và đích"}), 400
+    
+    max_flow, paths = graph.ford_fulkerson(source, sink)
+    return jsonify({
+        "max_flow": max_flow,
+        "paths": paths,
+        "success": True
+    })
+
+@app.route('/api/fleury', methods=['POST'])
+def run_fleury():
+    """API cho thuật toán Fleury"""
+    data = request.json
+    start = data.get('start')
+    
+    if not start:
+        return jsonify({"error": "Cần cung cấp đỉnh bắt đầu"}), 400
+    
+    if isinstance(graph.fleury(start)[0], str):
+        # Trường hợp lỗi
+        return jsonify({
+            "success": False,
+            "message": graph.fleury(start)[0]
+        })
+    
+    path, edges_used = graph.fleury(start)
+    return jsonify({
+        "success": True,
+        "path": path,
+        "edges": edges_used
+    })
+
+@app.route('/api/hierholzer', methods=['POST'])
+def run_hierholzer():
+    """API cho thuật toán Hierholzer"""
+    data = request.json
+    start = data.get('start')
+    
+    if not start:
+        return jsonify({"error": "Cần cung cấp đỉnh bắt đầu"}), 400
+    
+    result = graph.hierholzer(start)
+    
+    if isinstance(result[0], str):
+        # Trường hợp lỗi
+        return jsonify({
+            "success": False,
+            "message": result[0]
+        })
+    
+    path, edges_used = result
+    return jsonify({
+        "success": True,
+        "path": path,
+        "edges": edges_used
+    })
 
 @app.route('/api/clear', methods=['POST'])
 def clear_graph():
