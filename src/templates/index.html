@@ -282,7 +282,7 @@
 <body>
     <div class="container">
         <header>
-            <h1>🔗 Ứng dụng Đồ thị</h1>
+            <h1> Ứng dụng Đồ thị</h1>
             <p class="subtitle">Công cụ trực quan hóa và xử lý đồ thị</p>
         </header>
 
@@ -312,8 +312,8 @@
 
                 <div class="section">
                     <h3>2. Lưu & Quản lý</h3>
-                    <button class="btn-success" onclick="saveGraph()">💾 Lưu Đồ Thị</button>
-                    <button class="btn-danger" onclick="clearGraph()">🗑️ Xóa Toàn Bộ</button>
+                    <button class="btn-success" onclick="saveGraph()"> Lưu Đồ Thị</button>
+                    <button class="btn-danger" onclick="clearGraph()"> Xóa Toàn Bộ</button>
                 </div>
 
                 <div class="section">
@@ -507,7 +507,7 @@
                 }
                 return await response.json();
             } catch (error) {
-                showResult(`❌ Lỗi: ${error.message}`, 'error');
+                showResult(` Lỗi: ${error.message}`, 'error');
                 throw error;
             }
         }
@@ -519,7 +519,7 @@
             const directed = document.getElementById('directed').checked;
 
             if (!from || !to) {
-                showResult('⚠️ Vui lòng nhập cả hai đỉnh!', 'error');
+                showResult(' Vui lòng nhập cả hai đỉnh!', 'error');
                 return;
             }
 
@@ -530,7 +530,7 @@
             });
 
             updateGraph(data.graph);
-            showResult(`✅ Đã thêm cạnh ${from} → ${to} (trọng số: ${weight})`, 'success');
+            showResult(` Đã thêm cạnh ${from} → ${to} (trọng số: ${weight})`, 'success');
         }
 
         async function saveGraph() {
@@ -543,14 +543,14 @@
                 await fetchWithErrorHandling('/api/clear', { method: 'POST' });
                 nodes.clear();
                 edges.clear();
-                showResult('🗑️ Đã xóa toàn bộ đồ thị', 'success');
+                showResult(' Đã xóa toàn bộ đồ thị', 'success');
             }
         }
 
         async function runBFS() {
             const start = document.getElementById('startVertex').value.trim();
             if (!start) {
-                showResult('⚠️ Vui lòng nhập đỉnh bắt đầu!', 'error');
+                showResult(' Vui lòng nhập đỉnh bắt đầu!', 'error');
                 return;
             }
 
@@ -561,7 +561,7 @@
             });
 
             if (data.order.length === 0) {
-                showResult('❌ Đỉnh không tồn tại trong đồ thị', 'error');
+                showResult(' Đỉnh không tồn tại trong đồ thị', 'error');
                 return;
             }
 
@@ -572,7 +572,7 @@
         async function runDFS() {
             const start = document.getElementById('startVertex').value.trim();
             if (!start) {
-                showResult('⚠️ Vui lòng nhập đỉnh bắt đầu!', 'error');
+                showResult(' Vui lòng nhập đỉnh bắt đầu!', 'error');
                 return;
             }
 
@@ -583,7 +583,7 @@
             });
 
             if (data.order.length === 0) {
-                showResult('❌ Đỉnh không tồn tại trong đồ thị', 'error');
+                showResult(' Đỉnh không tồn tại trong đồ thị', 'error');
                 return;
             }
 
@@ -596,7 +596,7 @@
             const end = document.getElementById('dijkstraEnd').value.trim();
             
             if (!start || !end) {
-                showResult('⚠️ Vui lòng nhập cả hai đỉnh!', 'error');
+                showResult(' Vui lòng nhập cả hai đỉnh!', 'error');
                 return;
             }
 
@@ -612,7 +612,7 @@
                     Tổng trọng số: ${data.distance}`, 'success');
                 await animateEdges(data.edges);
             } else {
-                showResult(`❌ Không tìm thấy đường đi từ ${start} đến ${end}`, 'error');
+                showResult(` Không tìm thấy đường đi từ ${start} đến ${end}`, 'error');
             }
         }
 
@@ -620,7 +620,7 @@
             const vertex = document.getElementById('bipartiteVertex').value.trim();
             
             if (!vertex) {
-                showResult('⚠️ Vui lòng nhập đỉnh kiểm tra!', 'error');
+                showResult(' Vui lòng nhập đỉnh kiểm tra!', 'error');
                 return;
             }
 
@@ -630,7 +630,7 @@
                 body: JSON.stringify({ vertex })
             });
 
-            const icon = data.is_bipartite ? '✅' : '❌';
+            const icon = data.is_bipartite ? 'tốt' : 'không được';
             const type = data.is_bipartite ? 'success' : 'error';
             showResult(`${icon} ${data.message}`, type);
         }
@@ -655,7 +655,7 @@
                     Tổng trọng số: ${data.total_weight}`, 'success');
                 await animateEdges(data.edges_used.map(e => [e[0], e[1]]));
             } else {
-                showResult('❌ Không thể tạo cây khung (đồ thị không liên thông)', 'error');
+                showResult(' Không thể tạo cây khung (đồ thị không liên thông)', 'error');
             }
         }
 
@@ -669,7 +669,7 @@
                     Tổng trọng số: ${data.total_weight}`, 'success');
                 await animateEdges(data.edges_used.map(e => [e[0], e[1]]));
             } else {
-                showResult('❌ Không thể tạo cây khung (đồ thị không liên thông)', 'error');
+                showResult(' Không thể tạo cây khung (đồ thị không liên thông)', 'error');
             }
         }
 
@@ -678,7 +678,7 @@
             const sink = document.getElementById('flowSink').value.trim();
             
             if (!source || !sink) {
-                showResult('⚠️ Vui lòng nhập đỉnh nguồn và đích!', 'error');
+                showResult(' Vui lòng nhập đỉnh nguồn và đích!', 'error');
                 return;
             }
 
@@ -704,7 +704,7 @@
                 const allEdges = data.paths.flatMap(p => p.path);
                 await animateEdges(allEdges);
             } else {
-                showResult('❌ Không thể tính luồng cực đại', 'error');
+                showResult(' Không thể tính luồng cực đại', 'error');
             }
         }
 
@@ -712,7 +712,7 @@
             const start = document.getElementById('eulerStart').value.trim();
             
             if (!start) {
-                showResult('⚠️ Vui lòng nhập đỉnh bắt đầu!', 'error');
+                showResult(' Vui lòng nhập đỉnh bắt đầu!', 'error');
                 return;
             }
 
@@ -728,7 +728,7 @@
                     Đường đi: ${data.path.join(' → ')}`, 'success');
                 await animateEdges(data.edges);
             } else {
-                showResult(`❌ ${data.message}`, 'error');
+                showResult(` ${data.message}`, 'error');
             }
         }
 
@@ -736,7 +736,7 @@
             const start = document.getElementById('eulerStart').value.trim();
             
             if (!start) {
-                showResult('⚠️ Vui lòng nhập đỉnh bắt đầu!', 'error');
+                showResult(' Vui lòng nhập đỉnh bắt đầu!', 'error');
                 return;
             }
 
@@ -752,7 +752,7 @@
                     Chu trình: ${data.path.join(' → ')}`, 'success');
                 await animateEdges(data.edges);
             } else {
-                showResult(`❌ ${data.message}`, 'error');
+                showResult(` ${data.message}`, 'error');
             }
         }
 

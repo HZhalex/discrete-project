@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+
 from flask import Flask, render_template, request, jsonify
 from collections import deque, defaultdict
 import heapq
