@@ -3,292 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ứng dụng Đồ thị</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/vis-network.min.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.css" rel="stylesheet">
+    <title>Ứng dụng Đồ thị (Fixed Library)</title>
+    
+    <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            overflow: hidden;
-        }
-
-        header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
-        }
-
-        h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
-        }
-
-        .subtitle {
-            font-size: 1.1em;
-            opacity: 0.9;
-        }
-
-        .main-content {
-            display: grid;
-            grid-template-columns: 350px 1fr;
-            gap: 20px;
-            padding: 20px;
-        }
-
-        .sidebar {
-            background: #f8f9fa;
-            border-radius: 15px;
-            padding: 20px;
-            height: fit-content;
-            max-height: calc(100vh - 200px);
-            overflow-y: auto;
-        }
-
-        /* Custom scrollbar */
-        .sidebar::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        .sidebar::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 10px;
-        }
-
-        .sidebar::-webkit-scrollbar-thumb {
-            background: #667eea;
-            border-radius: 10px;
-        }
-
-        .section {
-            margin-bottom: 25px;
-            background: white;
-            padding: 15px;
-            border-radius: 10px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        .section h3 {
-            color: #667eea;
-            margin-bottom: 15px;
-            font-size: 1.2em;
-            border-bottom: 2px solid #667eea;
-            padding-bottom: 10px;
-        }
-
-        .input-group {
-            margin-bottom: 12px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 5px;
-            color: #555;
-            font-weight: 600;
-            font-size: 0.9em;
-        }
-
-        input[type="text"],
-        input[type="number"] {
-            width: 100%;
-            padding: 10px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 14px;
-            transition: border-color 0.3s;
-        }
-
-        input[type="text"]:focus,
-        input[type="number"]:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        .checkbox-group {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin: 10px 0;
-        }
-
-        input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
-            cursor: pointer;
-        }
-
-        button {
-            width: 100%;
-            padding: 12px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 15px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-            margin-bottom: 8px;
-        }
-
-        button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
-
-        button:active {
-            transform: translateY(0);
-        }
-
-        .btn-secondary {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        }
-
-        .btn-success {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-        }
-
-        .btn-danger {
-            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-        }
-
-        .btn-warning {
-            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
-            color: #333;
-        }
-
-        .btn-info {
-            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
-            color: #333;
-        }
-
-        .graph-container {
-            background: white;
-            border-radius: 15px;
-            padding: 20px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        #mynetwork {
-            height: 600px;
-            border: 3px solid #e0e0e0;
-            border-radius: 10px;
-            background: #fafafa;
-        }
-
-        .result-box {
-            margin-top: 20px;
-            padding: 15px;
-            background: #f0f7ff;
-            border-left: 4px solid #667eea;
-            border-radius: 8px;
-            display: none;
-        }
-
-        .result-box.show {
-            display: block;
-            animation: slideIn 0.3s ease-out;
-        }
-
-        .result-box.error {
-            background: #fff5f5;
-            border-left-color: #f5576c;
-        }
-
-        .result-box.success {
-            background: #f0fff4;
-            border-left-color: #00f2fe;
-        }
-
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .result-title {
-            font-weight: 600;
-            color: #667eea;
-            margin-bottom: 10px;
-            font-size: 1.1em;
-        }
-
-        .result-content {
-            color: #333;
-            line-height: 1.6;
-        }
-
-        .algorithm-buttons {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-        }
-
-        .algorithm-buttons button {
-            font-size: 13px;
-            padding: 10px;
-        }
-
-        .grid-2 {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-        }
-
-        .loading {
-            display: inline-block;
-            width: 14px;
-            height: 14px;
-            border: 2px solid rgba(255,255,255,0.3);
-            border-radius: 50%;
-            border-top-color: white;
-            animation: spin 0.8s linear infinite;
-            margin-left: 8px;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        @media (max-width: 1024px) {
-            .main-content {
-                grid-template-columns: 1fr;
-            }
-        }
+        /* GIỮ NGUYÊN CSS CŨ CỦA BẠN */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+        .container { max-width: 1400px; margin: 0 auto; background: white; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; }
+        header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; }
+        h1 { font-size: 2.5em; margin-bottom: 10px; }
+        .subtitle { font-size: 1.1em; opacity: 0.9; }
+        .main-content { display: grid; grid-template-columns: 350px 1fr; gap: 20px; padding: 20px; }
+        .sidebar { background: #f8f9fa; border-radius: 15px; padding: 20px; height: fit-content; max-height: calc(100vh - 200px); overflow-y: auto; }
+        .section { margin-bottom: 25px; background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .section h3 { color: #667eea; margin-bottom: 15px; font-size: 1.2em; border-bottom: 2px solid #667eea; padding-bottom: 10px; }
+        .input-group { margin-bottom: 12px; }
+        label { display: block; margin-bottom: 5px; color: #555; font-weight: 600; font-size: 0.9em; }
+        input[type="text"], input[type="number"] { width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px; transition: border-color 0.3s; }
+        input[type="text"]:focus, input[type="number"]:focus { outline: none; border-color: #667eea; }
+        .checkbox-group { display: flex; align-items: center; gap: 8px; margin: 10px 0; }
+        input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
+        button { width: 100%; padding: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; margin-bottom: 8px; }
+        button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4); }
+        .btn-secondary { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .btn-success { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .btn-danger { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+        .btn-warning { background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%); color: #333; }
+        .btn-info { background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); color: #333; }
+        .graph-container { background: white; border-radius: 15px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        #mynetwork { height: 600px; border: 3px solid #e0e0e0; border-radius: 10px; background: #fafafa; }
+        .result-box { margin-top: 20px; padding: 15px; background: #f0f7ff; border-left: 4px solid #667eea; border-radius: 8px; display: none; }
+        .result-box.show { display: block; animation: slideIn 0.3s ease-out; }
+        .result-box.error { background: #fff5f5; border-left-color: #f5576c; }
+        .result-box.success { background: #f0fff4; border-left-color: #00f2fe; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .result-title { font-weight: 600; color: #667eea; margin-bottom: 10px; font-size: 1.1em; }
+        .result-content { color: #333; line-height: 1.6; }
+        .algorithm-buttons, .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .algorithm-buttons button { font-size: 13px; padding: 10px; }
+        @media (max-width: 1024px) { .main-content { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1> Ứng dụng Đồ thị</h1>
-            <p class="subtitle">Công cụ trực quan hóa và xử lý đồ thị</p>
+            <h1>Ứng dụng Đồ thị</h1>
+            <p class="subtitle">Công cụ trực quan hóa và xử lý đồ thị (Fixed)</p>
         </header>
 
         <div class="main-content">
             <div class="sidebar">
-                <!-- Phần cơ bản -->
                 <div class="section">
                     <h3>1. Thêm Cạnh</h3>
                     <div class="input-group">
@@ -305,15 +71,15 @@
                     </div>
                     <div class="checkbox-group">
                         <input type="checkbox" id="directed">
-                        <label for="directed">Có hướng</label>
+                        <label for="directed">Có hướng (Mũi tên)</label>
                     </div>
                     <button onclick="addEdge()">Thêm Cạnh</button>
                 </div>
 
                 <div class="section">
                     <h3>2. Lưu & Quản lý</h3>
-                    <button class="btn-success" onclick="saveGraph()"> Lưu Đồ Thị</button>
-                    <button class="btn-danger" onclick="clearGraph()"> Xóa Toàn Bộ</button>
+                    <button class="btn-success" onclick="saveGraph()">Lưu Đồ Thị</button>
+                    <button class="btn-danger" onclick="clearGraph()">Xóa Toàn Bộ</button>
                 </div>
 
                 <div class="section">
@@ -340,52 +106,32 @@
                     </div>
                     <button class="btn-success" onclick="runDijkstra()">Dijkstra</button>
                 </div>
-
+                
                 <div class="section">
-                    <h3>5. Kiểm Tra 2 Phía</h3>
-                    <div class="input-group">
-                        <label>Đỉnh kiểm tra:</label>
-                        <input type="text" id="bipartiteVertex" placeholder="Ví dụ: A">
-                    </div>
-                    <button class="btn-secondary" onclick="checkBipartite()">Kiểm Tra</button>
-                </div>
-
-                <div class="section">
-                    <h3>6. Chuyển Đổi</h3>
-                    <div class="grid-2">
-                        <button onclick="convertGraph('adjacency', 'edge')">Kề → Cạnh</button>
-                        <button onclick="convertGraph('adjacency', 'incidence')">Kề → Ma Trận</button>
-                    </div>
-                </div>
-
-                <div class="section">
-                    <h3>7. Cây Khung Nhỏ Nhất</h3>
+                    <h3>5. Thuật Toán Khác</h3>
                     <div class="algorithm-buttons">
-                        <button class="btn-success" onclick="runPrim()">Prim</button>
-                        <button class="btn-success" onclick="runKruskal()">Kruskal</button>
+                        <button class="btn-success" onclick="runPrim()">Prim (MST)</button>
+                        <button class="btn-success" onclick="runKruskal()">Kruskal (MST)</button>
+                        <button class="btn-info" onclick="checkBipartite()">Check 2 Phía</button>
                     </div>
                 </div>
 
-                <div class="section">
-                    <h3>8. Luồng Cực Đại</h3>
-                    <div class="input-group">
-                        <label>Đỉnh nguồn:</label>
-                        <input type="text" id="flowSource" placeholder="Ví dụ: S">
-                    </div>
-                    <div class="input-group">
-                        <label>Đỉnh đích:</label>
-                        <input type="text" id="flowSink" placeholder="Ví dụ: T">
+                 <div class="section">
+                    <h3>6. Luồng & Euler</h3>
+                     <div class="input-group">
+                        <label>Nguồn/Đích (Flow):</label>
+                        <div style="display: flex; gap: 5px;">
+                             <input type="text" id="flowSource" placeholder="S">
+                             <input type="text" id="flowSink" placeholder="T">
+                        </div>
                     </div>
                     <button class="btn-warning" onclick="runFordFulkerson()">Ford-Fulkerson</button>
-                </div>
-
-                <div class="section">
-                    <h3>9. Đường Đi Euler</h3>
-                    <div class="input-group">
-                        <label>Đỉnh bắt đầu:</label>
+                    
+                     <div class="input-group" style="margin-top: 10px;">
+                        <label>Đỉnh Euler:</label>
                         <input type="text" id="eulerStart" placeholder="Ví dụ: A">
                     </div>
-                    <div class="algorithm-buttons">
+                    <div class="grid-2">
                         <button class="btn-info" onclick="runFleury()">Fleury</button>
                         <button class="btn-info" onclick="runHierholzer()">Hierholzer</button>
                     </div>
@@ -403,6 +149,7 @@
     </div>
 
     <script>
+        // --- 1. KHỞI TẠO VIS.JS ---
         let network;
         let nodes = new vis.DataSet([]);
         let edges = new vis.DataSet([]);
@@ -413,115 +160,84 @@
             const options = {
                 nodes: {
                     shape: 'circle',
-                    size: 25,
-                    font: {
-                        size: 16,
-                        color: '#ffffff',
-                        face: 'arial'
-                    },
-                    color: {
-                        background: '#667eea',
-                        border: '#764ba2',
-                        highlight: {
-                            background: '#f093fb',
-                            border: '#f5576c'
-                        }
-                    },
-                    borderWidth: 3
+                    size: 30,
+                    font: { size: 16, color: '#ffffff' },
+                    color: { background: '#667eea', border: '#764ba2', highlight: { background: '#f093fb', border: '#f5576c' } },
+                    borderWidth: 2
                 },
                 edges: {
                     width: 2,
                     color: { color: '#848484', highlight: '#f5576c' },
-                    arrows: {
-                        to: { enabled: false }
-                    },
-                    font: {
-                        size: 14,
-                        align: 'middle',
-                        background: 'white'
-                    },
-                    smooth: {
-                        type: 'continuous'
-                    }
+                    arrows: { to: { enabled: true, scaleFactor: 1 } },
+                    font: { size: 14, align: 'top', background: 'white' },
+                    smooth: { type: 'continuous' }
                 },
                 physics: {
                     enabled: true,
-                    barnesHut: {
-                        gravitationalConstant: -2000,
-                        springConstant: 0.04,
-                        springLength: 150
-                    },
-                    stabilization: {
-                        iterations: 150
-                    }
-                },
-                interaction: {
-                    hover: true,
-                    tooltipDelay: 200
+                    barnesHut: { gravitationalConstant: -2000, springLength: 200 }
                 }
             };
             network = new vis.Network(container, data, options);
         }
 
         function updateGraph(graphData) {
-            nodes.clear();
-            edges.clear();
-            
+            // Cập nhật Node
             if (graphData.nodes) {
-                nodes.add(graphData.nodes);
+                let currentIds = nodes.getIds();
+                let newIds = graphData.nodes.map(n => n.id);
+                nodes.remove(currentIds.filter(id => !newIds.includes(id)));
+                nodes.update(graphData.nodes);
             }
             
+            // Cập nhật Edge
             if (graphData.edges) {
-                edges.add(graphData.edges.map(edge => ({
+                let currentEdgeIds = edges.getIds();
+                let newEdgeIds = graphData.edges.map(e => e.id);
+                edges.remove(currentEdgeIds.filter(id => !newEdgeIds.includes(id)));
+                
+                const processedEdges = graphData.edges.map(edge => ({
+                    id: edge.id,
                     from: edge.from,
                     to: edge.to,
                     label: edge.label,
-                    id: `${edge.from}-${edge.to}`
-                })));
+                    arrows: edge.arrows 
+                }));
+                edges.update(processedEdges);
             }
         }
 
+        // --- 2. CÁC HÀM XỬ LÝ GIAO DIỆN ---
         function showResult(message, type = 'info') {
             const resultBox = document.getElementById('result');
             const resultContent = document.getElementById('resultContent');
-            
-            resultBox.className = 'result-box show';
-            if (type === 'error') {
-                resultBox.classList.add('error');
-            } else if (type === 'success') {
-                resultBox.classList.add('success');
-            }
-            
+            resultBox.className = 'result-box show ' + type;
             resultContent.innerHTML = message;
-            
-            setTimeout(() => {
-                resultBox.classList.remove('show');
-            }, 10000);
+            // Tự tắt thông báo sau 5 giây
+            setTimeout(() => { 
+                if(resultBox.classList.contains('show')) resultBox.classList.remove('show'); 
+            }, 5000);
         }
 
         async function fetchWithErrorHandling(url, options = {}) {
             try {
                 const response = await fetch(url, options);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return await response.json();
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.message || 'Lỗi server');
+                return data;
             } catch (error) {
-                showResult(` Lỗi: ${error.message}`, 'error');
+                showResult(`Lỗi: ${error.message}`, 'error');
                 throw error;
             }
         }
 
+        // --- 3. CÁC HÀM GỌI API ---
         async function addEdge() {
             const from = document.getElementById('fromVertex').value.trim();
             const to = document.getElementById('toVertex').value.trim();
             const weight = document.getElementById('weight').value;
             const directed = document.getElementById('directed').checked;
 
-            if (!from || !to) {
-                showResult(' Vui lòng nhập cả hai đỉnh!', 'error');
-                return;
-            }
+            if (!from || !to) return showResult('Vui lòng nhập cả hai đỉnh!', 'error');
 
             const data = await fetchWithErrorHandling('/api/add_edge', {
                 method: 'POST',
@@ -529,273 +245,173 @@
                 body: JSON.stringify({ from, to, weight, directed })
             });
 
-            updateGraph(data.graph);
-            showResult(` Đã thêm cạnh ${from} → ${to} (trọng số: ${weight})`, 'success');
+            if (data.success) {
+                updateGraph(data.graph);
+                showResult(`Đã thêm cạnh ${from} ${directed ? '→' : '-'} ${to}`, 'success');
+            }
         }
 
+        async function clearGraph() {
+            if (confirm('Xóa toàn bộ đồ thị?')) {
+                await fetchWithErrorHandling('/api/clear', { method: 'POST' });
+                nodes.clear();
+                edges.clear();
+                showResult('Đã reset đồ thị', 'success');
+            }
+        }
+        
         async function saveGraph() {
             const data = await fetchWithErrorHandling('/api/save');
             showResult(`<strong>Danh sách kề:</strong><br>${data.adjacency_list.join('<br>')}`, 'info');
         }
 
-        async function clearGraph() {
-            if (confirm('Bạn có chắc muốn xóa toàn bộ đồ thị?')) {
-                await fetchWithErrorHandling('/api/clear', { method: 'POST' });
-                nodes.clear();
-                edges.clear();
-                showResult(' Đã xóa toàn bộ đồ thị', 'success');
-            }
-        }
-
         async function runBFS() {
             const start = document.getElementById('startVertex').value.trim();
-            if (!start) {
-                showResult(' Vui lòng nhập đỉnh bắt đầu!', 'error');
-                return;
-            }
-
+            if(!start) return showResult('Nhập đỉnh bắt đầu', 'error');
             const data = await fetchWithErrorHandling('/api/bfs', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ start })
             });
-
-            if (data.order.length === 0) {
-                showResult(' Đỉnh không tồn tại trong đồ thị', 'error');
-                return;
-            }
-
-            showResult(`<strong>BFS từ ${start}:</strong><br>Thứ tự duyệt: ${data.order.join(' → ')}`, 'success');
+            showResult(`BFS: ${data.order.join(' → ')}`, 'success');
             await animateEdges(data.edges);
         }
-
+        
         async function runDFS() {
             const start = document.getElementById('startVertex').value.trim();
-            if (!start) {
-                showResult(' Vui lòng nhập đỉnh bắt đầu!', 'error');
-                return;
-            }
-
+            if(!start) return showResult('Nhập đỉnh bắt đầu', 'error');
             const data = await fetchWithErrorHandling('/api/dfs', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ start })
             });
-
-            if (data.order.length === 0) {
-                showResult(' Đỉnh không tồn tại trong đồ thị', 'error');
-                return;
-            }
-
-            showResult(`<strong>DFS từ ${start}:</strong><br>Thứ tự duyệt: ${data.order.join(' → ')}`, 'success');
+            showResult(`DFS: ${data.order.join(' → ')}`, 'success');
             await animateEdges(data.edges);
         }
 
         async function runDijkstra() {
             const start = document.getElementById('dijkstraStart').value.trim();
             const end = document.getElementById('dijkstraEnd').value.trim();
+            if(!start || !end) return showResult('Nhập đỉnh nguồn và đích', 'error');
             
-            if (!start || !end) {
-                showResult(' Vui lòng nhập cả hai đỉnh!', 'error');
-                return;
-            }
-
             const data = await fetchWithErrorHandling('/api/dijkstra', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ start, end })
             });
-
-            if (data.path && data.path.length > 0) {
-                showResult(`<strong>Đường đi ngắn nhất (Dijkstra):</strong><br>
-                    Từ ${start} → ${end}: ${data.path.join(' → ')}<br>
-                    Tổng trọng số: ${data.distance}`, 'success');
+            
+            if(data.path) {
+                showResult(`Dijkstra (${data.distance}): ${data.path.join(' → ')}`, 'success');
                 await animateEdges(data.edges);
             } else {
-                showResult(` Không tìm thấy đường đi từ ${start} đến ${end}`, 'error');
+                showResult('Không tìm thấy đường đi', 'error');
             }
-        }
-
-        async function checkBipartite() {
-            const vertex = document.getElementById('bipartiteVertex').value.trim();
-            
-            if (!vertex) {
-                showResult(' Vui lòng nhập đỉnh kiểm tra!', 'error');
-                return;
-            }
-
-            const data = await fetchWithErrorHandling('/api/check_bipartite', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ vertex })
-            });
-
-            const icon = data.is_bipartite ? 'tốt' : 'không được';
-            const type = data.is_bipartite ? 'success' : 'error';
-            showResult(`${icon} ${data.message}`, type);
-        }
-
-        async function convertGraph(from, to) {
-            const data = await fetchWithErrorHandling('/api/convert', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ from, to })
-            });
-
-            showResult(`<strong>Chuyển đổi biểu diễn:</strong><br>${data.result.join('<br>')}`, 'info');
         }
 
         async function runPrim() {
             const data = await fetchWithErrorHandling('/api/prim');
-            
-            if (data.edges && data.edges.length > 0) {
-                const edgeStr = data.edges.map(e => `${e[0]}-${e[1]} (${e[2]})`).join(', ');
-                showResult(`<strong>Cây khung nhỏ nhất (Prim):</strong><br>
-                    Các cạnh: ${edgeStr}<br>
-                    Tổng trọng số: ${data.total_weight}`, 'success');
-                await animateEdges(data.edges_used.map(e => [e[0], e[1]]));
-            } else {
-                showResult(' Không thể tạo cây khung (đồ thị không liên thông)', 'error');
-            }
+            showResult(`Prim (Tổng ${data.total_weight})`, 'success');
+            await animateEdges(data.edges_used.map(e => [e[0], e[1]]));
         }
 
         async function runKruskal() {
             const data = await fetchWithErrorHandling('/api/kruskal');
-            
-            if (data.edges && data.edges.length > 0) {
-                const edgeStr = data.edges.map(e => `${e[0]}-${e[1]} (${e[2]})`).join(', ');
-                showResult(`<strong>Cây khung nhỏ nhất (Kruskal):</strong><br>
-                    Các cạnh: ${edgeStr}<br>
-                    Tổng trọng số: ${data.total_weight}`, 'success');
-                await animateEdges(data.edges_used.map(e => [e[0], e[1]]));
-            } else {
-                showResult(' Không thể tạo cây khung (đồ thị không liên thông)', 'error');
-            }
+            showResult(`Kruskal (Tổng ${data.total_weight})`, 'success');
+            await animateEdges(data.edges_used.map(e => [e[0], e[1]]));
         }
-
+        
         async function runFordFulkerson() {
-            const source = document.getElementById('flowSource').value.trim();
-            const sink = document.getElementById('flowSink').value.trim();
-            
-            if (!source || !sink) {
-                showResult(' Vui lòng nhập đỉnh nguồn và đích!', 'error');
-                return;
-            }
-
-            const data = await fetchWithErrorHandling('/api/ford_fulkerson', {
+             const source = document.getElementById('flowSource').value.trim();
+             const sink = document.getElementById('flowSink').value.trim();
+             if(!source || !sink) return showResult('Nhập nguồn và đích', 'error');
+             
+             const data = await fetchWithErrorHandling('/api/ford_fulkerson', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ source, sink })
             });
-
-            if (data.success) {
-                let pathsStr = '';
-                data.paths.forEach((p, i) => {
-                    const pathEdges = p.path.map(e => `${e[0]}→${e[1]}`).join(' → ');
-                    pathsStr += `<br>  Đường ${i+1}: ${pathEdges} (luồng: ${p.flow})`;
-                });
-
-                showResult(`<strong>Luồng cực đại (Ford-Fulkerson):</strong><br>
-                    Từ ${source} → ${sink}<br>
-                    Luồng cực đại: <strong>${data.max_flow}</strong>
-                    ${pathsStr}`, 'success');
-
-                // Highlight tất cả các cạnh trong các đường tăng luồng
+            
+            if(data.success) {
+                showResult(`Luồng cực đại: ${data.max_flow}`, 'success');
                 const allEdges = data.paths.flatMap(p => p.path);
                 await animateEdges(allEdges);
-            } else {
-                showResult(' Không thể tính luồng cực đại', 'error');
             }
         }
 
         async function runFleury() {
             const start = document.getElementById('eulerStart').value.trim();
-            
-            if (!start) {
-                showResult(' Vui lòng nhập đỉnh bắt đầu!', 'error');
-                return;
-            }
-
+            if(!start) return showResult('Nhập đỉnh bắt đầu', 'error');
             const data = await fetchWithErrorHandling('/api/fleury', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ start })
             });
-
-            if (data.success) {
-                showResult(`<strong>Đường đi Euler (Fleury):</strong><br>
-                    Bắt đầu từ: ${start}<br>
-                    Đường đi: ${data.path.join(' → ')}`, 'success');
+            if(data.success) {
+                showResult(`Euler (Fleury): ${data.path.join(' → ')}`, 'success');
                 await animateEdges(data.edges);
             } else {
-                showResult(` ${data.message}`, 'error');
+                showResult(data.message, 'error');
             }
         }
-
+        
         async function runHierholzer() {
             const start = document.getElementById('eulerStart').value.trim();
-            
-            if (!start) {
-                showResult(' Vui lòng nhập đỉnh bắt đầu!', 'error');
-                return;
-            }
-
+            if(!start) return showResult('Nhập đỉnh bắt đầu', 'error');
             const data = await fetchWithErrorHandling('/api/hierholzer', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ start })
             });
-
-            if (data.success) {
-                showResult(`<strong>Chu trình Euler (Hierholzer):</strong><br>
-                    Bắt đầu từ: ${start}<br>
-                    Chu trình: ${data.path.join(' → ')}`, 'success');
+            if(data.success) {
+                showResult(`Euler (Hierholzer): ${data.path.join(' → ')}`, 'success');
                 await animateEdges(data.edges);
             } else {
-                showResult(` ${data.message}`, 'error');
+                showResult(data.message, 'error');
             }
+        }
+        
+        async function checkBipartite() {
+            const v = document.getElementById('bipartiteVertex') ? document.getElementById('bipartiteVertex').value.trim() : nodes.getIds()[0];
+             const data = await fetchWithErrorHandling('/api/check_bipartite', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ vertex: v })
+            });
+            showResult(data.message, data.is_bipartite ? 'success' : 'error');
         }
 
         async function animateEdges(edgeList) {
-            // Reset tất cả cạnh về màu mặc định
-            edges.forEach(edge => {
-                edges.update({
-                    id: edge.id,
-                    color: { color: '#848484' },
-                    width: 2
-                });
-            });
+            const allEdges = edges.get();
+            // Reset màu về mặc định
+            allEdges.forEach(e => edges.update({id: e.id, color: {color: '#848484'}, width: 2}));
 
-            // Animate từng cạnh với delay
             for (let i = 0; i < edgeList.length; i++) {
-                await new Promise(resolve => setTimeout(resolve, 500));
+                await new Promise(r => setTimeout(r, 600));
                 
-                const [from, to] = edgeList[i];
-                const edgeId = `${from}-${to}`;
-                const reverseEdgeId = `${to}-${from}`;
+                const [u, v] = edgeList[i];
+                let id = `${u}->${v}`;
+                let item = edges.get(id);
                 
-                if (edges.get(edgeId)) {
-                    edges.update({
-                        id: edgeId,
-                        color: { color: '#f5576c' },
-                        width: 4
-                    });
-                } else if (edges.get(reverseEdgeId)) {
-                    edges.update({
-                        id: reverseEdgeId,
-                        color: { color: '#f5576c' },
-                        width: 4
-                    });
+                if (!item) {
+                    const sorted = [u, v].sort();
+                    id = `${sorted[0]}-${sorted[1]}`;
+                    item = edges.get(id);
+                }
+
+                if (item) {
+                    edges.update({ id: id, color: { color: '#f5576c' }, width: 4 });
                 }
             }
         }
 
         async function loadGraph() {
-            const data = await fetchWithErrorHandling('/api/graph');
-            updateGraph(data);
+            try {
+                const data = await fetchWithErrorHandling('/api/graph');
+                updateGraph(data);
+            } catch(e) { console.log("Chưa có data"); }
         }
 
-        // Initialize
+        // --- 4. KHỞI CHẠY ---
         initNetwork();
         loadGraph();
     </script>
