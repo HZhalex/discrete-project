@@ -68,9 +68,9 @@
                 <div class="section">
                     <h3>⚙️ Tốc độ Animation</h3>
                     <div class="speed-control">
-                        <label style="margin: 0;">Chậm</label>
-                        <input type="range" id="speedSlider" min="100" max="2000" value="600" step="100">
                         <label style="margin: 0;">Nhanh</label>
+                        <input type="range" id="speedSlider" min="100" max="2000" value="600" step="100">
+                        <label style="margin: 0;">Chậm</label>
                     </div>
                     <div style="text-align: center; margin-top: 8px;">
                         <span class="speed-value"><span id="speedValue">600</span>ms</span>
@@ -98,7 +98,7 @@
                     </div>
                     <div class="input-group">
                         <label>Trọng số:</label>
-                        <input type="number" id="weight" value="1">
+                        <input type="number" id="weight" placeholder = "Ví dụ: 5">
                     </div>
                     <div class="checkbox-group">
                         <input type="checkbox" id="directed">
@@ -109,8 +109,17 @@
 
                 <div class="section">
                     <h3>3. Lưu & Quản lý</h3>
-                    <button class="btn-success" onclick="saveGraph()">Lưu Đồ Thị</button>
                     <button class="btn-danger" onclick="clearGraph()">Xóa Toàn Bộ</button>
+                </div>
+
+                <div class="section">
+                    <h3>💡 Hướng dẫn</h3>
+                    <div style="background: #f0f7ff; padding: 10px; border-radius: 8px; font-size: 13px; line-height: 1.6;">
+                        <strong>Xóa đỉnh/cạnh:</strong><br>
+                        1. Click chọn đỉnh hoặc cạnh<br>
+                        2. Nhấn phím <kbd>Delete</kbd> hoặc <kbd>Backspace</kbd><br>
+                        <em style="color: #666;">* Xóa đỉnh sẽ xóa luôn các cạnh liên quan</em>
+                    </div>
                 </div>
 
                 <div class="section">
@@ -220,12 +229,76 @@
                     smooth: { type: 'continuous' }
                 },
                 physics: {
-                    enabled: true,
+                    enabled: false,
                     barnesHut: { gravitationalConstant: -2000, springLength: 200 }
+                },
+                manipulation: {
+                    enabled: false
                 }
             };
             network = new vis.Network(container, data, options);
+            
+            // Thêm event listener cho phím Delete
+            document.addEventListener('keydown', handleDeleteKey);
         }
+
+        async function handleDeleteKey(event) {
+            if (event.key === 'Delete' || event.key === 'Backspace') {
+                const selection = network.getSelection();
+                
+                // Xóa đỉnh
+                if (selection.nodes.length > 0) {
+                    const nodeId = selection.nodes[0];
+                    if (confirm(`Xóa đỉnh "${nodeId}" và tất cả các cạnh liên quan?`)) {
+                        try {
+                            const data = await fetchWithErrorHandling('/api/delete_vertex', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ vertex: nodeId })
+                            });
+                            
+                            if (data.success) {
+                                updateGraph(data.graph);
+                                showResult(`✅ Đã xóa đỉnh: ${nodeId}`, 'success');
+                            }
+                        } catch (error) {
+                            showResult('Lỗi xóa đỉnh: ' + error.message, 'error');
+                        }
+                    }
+                }
+                // Xóa cạnh
+                else if (selection.edges.length > 0) {
+                    const edgeId = selection.edges[0];
+                    const edge = edges.get(edgeId);
+                    
+                    if (edge && confirm(`Xóa cạnh "${edgeId}"?`)) {
+                        try {
+                            // Xác định xem cạnh có hướng hay không
+                            const directed = edge.arrows === 'to';
+                            
+                            const data = await fetchWithErrorHandling('/api/delete_edge', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ 
+                                    from: edge.from, 
+                                    to: edge.to,
+                                    directed: directed
+                                })
+                            });
+                            
+                            if (data.success) {
+                                updateGraph(data.graph);
+                                showResult(`✅ Đã xóa cạnh: ${edgeId}`, 'success');
+                            }
+                        } catch (error) {
+                            showResult('Lỗi xóa cạnh: ' + error.message, 'error');
+                        }
+                    }
+                }
+            }
+        }
+
+
 
         function updateGraph(graphData) {
             if (graphData.nodes) {
@@ -258,7 +331,7 @@
             resultContent.innerHTML = message;
             setTimeout(() => { 
                 if(resultBox.classList.contains('show')) resultBox.classList.remove('show'); 
-            }, 5000);
+            }, 60000);
         }
 
         async function fetchWithErrorHandling(url, options = {}) {
@@ -337,14 +410,19 @@
 
                 let message = '';
                 if (convertType === 'adjacency_list') {
-                    message = '<strong>📋 Danh sách kề:</strong><br>' + JSON.stringify(data.result, null, 2);
+                    message = '<strong>📋 Danh sách kề:</strong><br><br>';
+                    for (let vertex in data.result) {
+                        const neighbors = data.result[vertex];
+                        message += `${vertex}: ${neighbors.length > 0 ? neighbors.join(', ') : '(không có kề)'}<br>`;
+                    }
                 } else if (convertType === 'adjacency_matrix') {
                     message = '<strong>🔢 Ma trận kề:</strong><br>Đỉnh: ' + data.result.vertices.join(', ') + '<br><br>';
                     data.result.matrix.forEach((row, i) => {
                         message += data.result.vertices[i] + ': [' + row.join(', ') + ']<br>';
                     });
                 } else if (convertType === 'edge_list') {
-                    message = '<strong>📝 Danh sách cạnh:</strong><br>' + JSON.stringify(data.result, null, 2);
+                    message = '<strong>📝 Danh sách cạnh:</strong><br><br>';
+                    message += data.result.join('<br>');
                 }
                 
                 showResult(message, 'info');
@@ -374,7 +452,9 @@
         async function addEdge() {
             const from = document.getElementById('fromVertex').value.trim();
             const to = document.getElementById('toVertex').value.trim();
-            const weight = document.getElementById('weight').value;
+            const weightInput = document.getElementById('weight').value;
+            // THAY ĐỔI: Nếu không nhập weight thì để trống (backend sẽ set = 0)
+            const weight = weightInput !== '' ? weightInput : '';
             const directed = document.getElementById('directed').checked;
 
             if (!from || !to) return showResult('Vui lòng nhập cả hai đỉnh!', 'error');
@@ -388,6 +468,8 @@
             if (data.success) {
                 updateGraph(data.graph);
                 showResult(`Đã thêm cạnh ${from} ${directed ? '→' : '-'} ${to}`, 'success');
+                // Clear form sau khi thêm thành công
+                document.getElementById('weight').value = '';
             }
         }
 
@@ -398,11 +480,6 @@
                 edges.clear();
                 showResult('Đã reset đồ thị', 'success');
             }
-        }
-        
-        async function saveGraph() {
-            const data = await fetchWithErrorHandling('/api/save');
-            showResult(`<strong>Danh sách kề:</strong><br>${data.adjacency_list.join('<br>')}`, 'info');
         }
 
         async function runBFS() {
@@ -454,15 +531,33 @@
         }
 
         async function runPrim() {
-            const data = await fetchWithErrorHandling('/api/prim');
-            showResult(`Prim (Tổng ${data.total_weight})`, 'success');
-            await animateEdges(data.edges_used.map(e => [e[0], e[1]]));
+            try {
+                const data = await fetchWithErrorHandling('/api/prim');
+                // THÊM: Kiểm tra lỗi từ backend
+                if (data.success === false) {
+                    showResult(`⚠️ ${data.message}`, 'error');
+                    return;
+                }
+                showResult(`Prim (Tổng ${data.total_weight})`, 'success');
+                await animateEdges(data.edges_used.map(e => [e[0], e[1]]));
+            } catch (error) {
+                showResult('Lỗi: ' + error.message, 'error');
+            }
         }
 
         async function runKruskal() {
-            const data = await fetchWithErrorHandling('/api/kruskal');
-            showResult(`Kruskal (Tổng ${data.total_weight})`, 'success');
-            await animateEdges(data.edges_used.map(e => [e[0], e[1]]));
+            try {
+                const data = await fetchWithErrorHandling('/api/kruskal');
+                // THÊM: Kiểm tra lỗi từ backend
+                if (data.success === false) {
+                    showResult(`⚠️ ${data.message}`, 'error');
+                    return;
+                }
+                showResult(`Kruskal (Tổng ${data.total_weight})`, 'success');
+                await animateEdges(data.edges_used.map(e => [e[0], e[1]]));
+            } catch (error) {
+                showResult('Lỗi: ' + error.message, 'error');
+            }
         }
         
         async function runFordFulkerson() {
@@ -554,7 +649,7 @@
                 updateGraph(data);
             } catch(e) { console.log("Chưa có data"); }
         }
-
+        
         initNetwork();
         loadGraph();
     </script>

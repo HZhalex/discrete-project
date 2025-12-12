@@ -11,6 +11,10 @@ class Graph:
         self.vertices = set()
         self.visual_edges = [] 
     
+    def add_vertex(self, vertex):
+        """Thêm đỉnh đơn lẻ vào đồ thị"""
+        self.vertices.add(vertex)
+    
     def add_edge(self, u, v, weight=1, directed=False):
         self.graph[u].append((v, weight))
         self.vertices.add(u)
@@ -44,9 +48,15 @@ class Graph:
             edge_data = {
                 "from": e['u'],
                 "to": e['v'],
-                "label": str(e['w']),
                 "id": e['id']
             }
+            
+            # THAY ĐỔI: Chỉ hiển thị label nếu weight != 0
+            if e['w'] != 0:
+                edge_data["label"] = str(e['w'])
+            else:
+                edge_data["label"] = ""  # Không hiển thị label
+            
             if e['directed']:
                 edge_data["arrows"] = "to"
             else:
@@ -56,16 +66,21 @@ class Graph:
         return {"nodes": nodes, "edges": edges}
     
     def to_adjacency_list(self):
-        """Chuyển sang danh sách kề"""
+        """Chuyển sang danh sách kề - format dễ đọc"""
         result = {}
         for vertex in sorted(list(self.vertices)):
             neighbors = []
             if vertex in self.graph:
+                # Loại bỏ duplicate cho undirected graph
+                seen = set()
                 for v, w in self.graph[vertex]:
-                    neighbors.append({"vertex": v, "weight": w})
-            result[vertex] = neighbors
+                    if v not in seen:
+                        neighbors.append(v)  # CHỈ LẤY TÊN ĐỈNH, KHÔNG CÓ WEIGHT
+                        seen.add(v)
+            result[vertex] = neighbors if neighbors else []
         return result
-    
+
+        
     def to_adjacency_matrix(self):
         """Chuyển sang ma trận kề"""
         vertices_list = sorted(list(self.vertices))
@@ -84,36 +99,29 @@ class Graph:
         }
     
     def to_edge_list(self):
-        """Chuyển sang danh sách cạnh"""
+        """Chuyển sang danh sách cạnh - format dễ đọc"""
         edges = []
-        seen = set()
         for e in self.visual_edges:
             if e['directed']:
-                edges.append({
-                    "from": e['u'],
-                    "to": e['v'],
-                    "weight": e['w'],
-                    "directed": True
-                })
+                edges.append(f"{e['u']}→{e['v']}")  # BỎ WEIGHT
             else:
-                edge_key = frozenset([e['u'], e['v']])
-                if edge_key not in seen:
-                    edges.append({
-                        "from": e['u'],
-                        "to": e['v'],
-                        "weight": e['w'],
-                        "directed": False
-                    })
-                    seen.add(edge_key)
+                edges.append(f"{e['u']}-{e['v']}")  # BỎ WEIGHT
         return edges
     
     def export_json(self):
         """Xuất đồ thị ra JSON format chuẩn"""
+        edge_list = []
+        for e in self.visual_edges:
+            edge_list.append({
+                "from": e['u'],
+                "to": e['v'],
+                "weight": e['w'],
+                "directed": e['directed']
+            })
+        
         return {
             "vertices": sorted(list(self.vertices)),
-            "edges": self.to_edge_list(),
-            "adjacency_list": self.to_adjacency_list(),
-            "adjacency_matrix": self.to_adjacency_matrix()
+            "edges": edge_list
         }
     
     def import_json(self, data):
@@ -198,11 +206,11 @@ class Graph:
     
     def dijkstra(self, start, end):
         if start not in self.vertices or end not in self.vertices:
-            return None, float('inf'), [], False
+            return None, float('inf'), []
         
         # Kiểm tra trọng số âm
         if self.has_negative_weight():
-            return None, float('inf'), [], True  # True = có trọng số âm
+            return None, float('inf'), []
         
         distances = {vertex: float('inf') for vertex in self.vertices}
         distances[start] = 0
@@ -231,7 +239,7 @@ class Graph:
         path = []
         current = end
         if distances[end] == float('inf'):
-             return None, float('inf'), [], False
+             return None, float('inf'), []
 
         while current is not None:
             path.append(current)
@@ -239,10 +247,10 @@ class Graph:
         path.reverse()
         
         if not path or path[0] != start:
-            return None, float('inf'), [], False
+            return None, float('inf'), []
         
         edges_used = [(path[i], path[i+1]) for i in range(len(path)-1)]
-        return path, distances[end], edges_used, False
+        return path, distances[end], edges_used
     
     def prim(self):
         if not self.vertices:
@@ -490,16 +498,33 @@ def index():
 def get_graph():
     return jsonify(graph.visualize())
 
+@app.route('/api/add_vertex', methods=['POST'])
+def add_vertex():
+    """Thêm đỉnh đơn lẻ"""
+    try:
+        data = request.json
+        vertex = data.get('vertex', '').strip()
+        if not vertex:
+            return jsonify({"success": False, "message": "Thiếu tên đỉnh"})
+        
+        graph.add_vertex(vertex)
+        return jsonify({"success": True, "graph": graph.visualize()})
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 400
+
 @app.route('/api/add_edge', methods=['POST'])
 def add_edge():
     try:
         data = request.json
-        u = data.get('from').strip()
-        v = data.get('to').strip()
+        u = data.get('from', '').strip()
+        v = data.get('to', '').strip()
         if not u or not v:
             return jsonify({"success": False, "message": "Thiếu tên đỉnh"})
-            
-        weight = int(data.get('weight', 1))
+        
+        # THAY ĐỔI: weight mặc định = 0 thay vì 1
+        weight_input = data.get('weight', '')
+        weight = int(weight_input) if weight_input != '' else 0
+        
         directed = data.get('directed', False)
         
         graph.add_edge(u, v, weight, directed)
@@ -568,11 +593,27 @@ def run_dijkstra():
 
 @app.route('/api/prim', methods=['GET'])
 def run_prim():
+    # THÊM: Kiểm tra đồ thị có hướng
+    has_directed = any(e['directed'] for e in graph.visual_edges)
+    if has_directed:
+        return jsonify({
+            "success": False, 
+            "message": "Không thể chạy Prim trên đồ thị có hướng"
+        })
+    
     edges, w, used = graph.prim()
     return jsonify({"edges": edges, "total_weight": w, "edges_used": used})
 
 @app.route('/api/kruskal', methods=['GET'])
 def run_kruskal():
+    # THÊM: Kiểm tra đồ thị có hướng
+    has_directed = any(e['directed'] for e in graph.visual_edges)
+    if has_directed:
+        return jsonify({
+            "success": False, 
+            "message": "Không thể chạy Kruskal trên đồ thị có hướng"
+        })
+    
     edges, w, used = graph.kruskal()
     return jsonify({"edges": edges, "total_weight": w, "edges_used": used})
 
@@ -625,6 +666,67 @@ def check_bipartite():
                         return jsonify({"is_bipartite": False, "message": "Không phải đồ thị 2 phía"})
                         
     return jsonify({"is_bipartite": True, "message": "Là đồ thị 2 phía"})
+@app.route('/api/delete_vertex', methods=['POST'])
+def delete_vertex():
+    """Xóa đỉnh và tất cả các cạnh liên quan"""
+    try:
+        data = request.json
+        vertex = data.get('vertex', '').strip()
+        
+        if not vertex:
+            return jsonify({"success": False, "message": "Thiếu tên đỉnh"})
+        
+        if vertex not in graph.vertices:
+            return jsonify({"success": False, "message": "Đỉnh không tồn tại"})
+        
+        # Xóa đỉnh khỏi set
+        graph.vertices.remove(vertex)
+        
+        # Xóa tất cả các cạnh liên quan đến đỉnh này
+        if vertex in graph.graph:
+            del graph.graph[vertex]
+        
+        # Xóa đỉnh này khỏi danh sách kề của các đỉnh khác
+        for v in graph.graph:
+            graph.graph[v] = [(neighbor, weight) for neighbor, weight in graph.graph[v] if neighbor != vertex]
+        
+        # Xóa các cạnh visual liên quan
+        graph.visual_edges = [e for e in graph.visual_edges if e['u'] != vertex and e['v'] != vertex]
+        
+        return jsonify({"success": True, "graph": graph.visualize()})
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 400
 
+@app.route('/api/delete_edge', methods=['POST'])
+def delete_edge():
+    """Xóa cạnh"""
+    try:
+        data = request.json
+        u = data.get('from', '').strip()
+        v = data.get('to', '').strip()
+        directed = data.get('directed', False)
+        
+        if not u or not v:
+            return jsonify({"success": False, "message": "Thiếu tên đỉnh"})
+        
+        # Xóa cạnh khỏi graph
+        if u in graph.graph:
+            graph.graph[u] = [(neighbor, weight) for neighbor, weight in graph.graph[u] if neighbor != v]
+        
+        if not directed and v in graph.graph:
+            graph.graph[v] = [(neighbor, weight) for neighbor, weight in graph.graph[v] if neighbor != u]
+        
+        # Xóa khỏi visual_edges
+        if directed:
+            edge_id = f"{u}->{v}"
+            graph.visual_edges = [e for e in graph.visual_edges if e['id'] != edge_id]
+        else:
+            u_sorted, v_sorted = sorted([u, v])
+            edge_id = f"{u_sorted}-{v_sorted}"
+            graph.visual_edges = [e for e in graph.visual_edges if e['id'] != edge_id]
+        
+        return jsonify({"success": True, "graph": graph.visualize()})
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 400
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
